@@ -1,0 +1,114 @@
+// Prisma Schema for Forest of Calm
+// 어른의 숲 데이터베이스 스키마
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 사용자 관리
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  passwordHash String @map("password_hash")
+  displayName String? @map("display_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // 구독 정보
+  subscriptionTier String @default("free") @map("subscription_tier") // "free" | "premium"
+  subscriptionExpiresAt DateTime? @map("subscription_expires_at")
+
+  // 관계
+  reflections Reflection[]
+  mindWeatherScores MindWeatherScore[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// 회고 데이터
+model Reflection {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title    String?
+  content  String   @db.Text
+  voiceInputUrl String? @map("voice_input_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 감정 분석 (생성 시 계산됨)
+  emotionalTone String?  @map("emotional_tone") // "distressed" | "anxious" | "guilty" | "frustrated" | "sad"
+  sentimentScore Float?  @map("sentiment_score") // -1.0 to 1.0
+  stressLevel   Int?     @map("stress_level") // 1-10 scale
+
+  // 관계
+  conversations Conversation[]
+
+  @@index([userId, createdAt])
+  @@index([userId, sentimentScore])
+  @@map("reflections")
+}
+
+// AI 대화 히스토리
+model Conversation {
+  id           String   @id @default(uuid())
+  reflectionId String   @map("reflection_id")
+  reflection   Reflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
+
+  role         String   // "user" | "assistant"
+  content      String   @db.Text
+  timestamp    DateTime @default(now())
+
+  // 메타데이터
+  aiModel      String?  @map("ai_model") // "claude-3-5-sonnet-20241022"
+  tokensUsed   Int?     @map("tokens_used")
+
+  @@index([reflectionId, timestamp])
+  @@map("conversations")
+}
+
+// 마음 날씨 지수 점수
+model MindWeatherScore {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date     DateTime @default(now())
+
+  // 계산된 메트릭
+  overallScore  Float   @map("overall_score") // 0-100 (higher = better mental state)
+  burnoutRisk   String  @map("burnout_risk")  // "low" | "medium" | "high" | "critical"
+
+  // 텍스트 패턴 분석
+  negativityRate Float  @map("negativity_rate") // % of negative sentiment words
+  repetitiveThemes Json @map("repetitive_themes") // {"yelling": 5, "guilt": 8, "tired": 12}
+  wordFrequency    Json @map("word_frequency")    // Top 20 most used words
+
+  // 인사이트
+  recommendations Json   // Array of actionable suggestions
+  trendDirection  String @map("trend_direction") // "improving" | "stable" | "declining"
+
+  @@index([userId, date])
+  @@map("mind_weather_scores")
+}
+
+// 세션 관리 (Redis 폴백용)
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}

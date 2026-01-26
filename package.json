@@ -1,0 +1,25 @@
+{
+  "name": "forest-of-calm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered emotional reflection platform for parents",
+  "workspaces": [
+    "apps/*",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:backend\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:web && npm run build:backend",
+    "build:web": "cd apps/web && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "lint": "npm run lint:web && npm run lint:backend",
+    "lint:web": "cd apps/web && npm run lint",
+    "lint:backend": "cd backend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

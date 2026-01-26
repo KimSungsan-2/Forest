@@ -1,0 +1,68 @@
+# 월간 서비스 플랫폼 개발 규칙
+
+## 서비스 생성 시 필수 참고 문서
+
+코드를 생성하거나 새로운 서비스를 만들 때는 **반드시** 다음 문서를 참고하세요:
+
+1. **@docs/service-creation-prompt.md** - 서비스 자동 생성 가이드
+   - 플랫폼 아키텍처 이해
+   - 서비스 생성 절차
+   - 디자인 시스템 적용 방법
+   - 모바일 WebView 최적화 가이드
+
+2. **@docs/monthly-service-platform-design.md** - 플랫폼 전체 설계 문서
+
+3. **@docs/design-system.md** - 토스 기반 디자인 시스템
+
+## 핵심 원칙
+
+### 1. 모바일 WebView 최적화
+- 모든 서비스는 React Native 앱의 WebView로 표시됩니다
+- 터치 영역 최소 44x44px
+- viewport 설정 필수 (`maximumScale: 1, userScalable: false`)
+- 부드러운 스크롤 및 성능 최적화
+
+### 2. 디자인 시스템
+- Tailwind CSS 기반
+- 토스 스타일 (넓은 여백, 명확한 타이포그래피)
+- 서비스별 Primary 색상 시스템
+- 반응형 디자인 (모바일 우선)
+
+### 3. 코드 품질
+- YAGNI 원칙: 필요한 것만 구현
+- 과도한 추상화 금지
+- 기획문서에 명시된 기능만 구현
+- 보안 고려 (XSS, SQL Injection 등)
+
+### 4. 파일 구조
+```
+apps/web/app/<서비스명>/
+├── layout.tsx (메타데이터, viewport 설정)
+├── page.tsx (메인 페이지)
+└── components/ (재사용 컴포넌트)
+
+backend/app/services/<서비스명>/
+├── models.py (데이터베이스 모델)
+├── schemas.py (Pydantic 스키마)
+├── router.py (API 엔드포인트)
+└── service.py (비즈니스 로직)
+```
+
+## 작업 전 체크리스트
+
+새로운 서비스를 생성하거나 기존 코드를 수정할 때:
+
+- [ ] service-creation-prompt.md 문서를 읽었는가?
+- [ ] 모바일 WebView 환경을 고려했는가?
+- [ ] 디자인 시스템을 적용했는가?
+- [ ] 보안 이슈를 검토했는가?
+- [ ] YAGNI 원칙을 준수했는가?
+
+## 금지 사항
+
+- ❌ 기획문서에 없는 기능 추가
+- ❌ 과도한 추상화 및 Helper 함수 남발
+- ❌ 데스크톱만 고려한 UI/UX
+- ❌ viewport 설정 누락
+- ❌ 44px 미만의 터치 영역
+- ❌ 불필요한 주석 및 문서 자동 생성

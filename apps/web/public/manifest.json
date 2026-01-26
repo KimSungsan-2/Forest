@@ -1,0 +1,53 @@
+{
+  "name": "어른의 숲 (Forest of Calm)",
+  "short_name": "Forest of Calm",
+  "description": "부모의 자책감을 성장의 데이터로 바꾸는 AI 감정 회고 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#34d399",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "감정 털어놓기",
+      "short_name": "벤팅",
+      "description": "오늘 하루 힘들었던 일을 AI에게 털어놓기",
+      "url": "/vent",
+      "icons": [
+        {
+          "src": "/icons/vent-icon.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "마음 날씨",
+      "short_name": "대시보드",
+      "description": "내 마음 상태 확인하기",
+      "url": "/mind-weather",
+      "icons": [
+        {
+          "src": "/icons/weather-icon.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
