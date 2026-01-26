@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag } from '../../../../../shared/types/reflection';
+import VoiceInput from './components/VoiceInput';
 
 const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'guilt', label: '죄책감', emoji: '😔' },
@@ -125,7 +126,7 @@ export default function VentPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -133,13 +134,23 @@ export default function VentPage() {
               className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
               autoFocus
             />
-            <div className="mt-2 flex justify-between items-center">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">
                 {content.length} / 5000
               </span>
               <span className="text-xs text-gray-400">
                 💡 솔직하게 털어놓을수록 더 도움이 됩니다
               </span>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200">
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                또는 음성으로 표현하기
+              </div>
+              <VoiceInput
+                onTranscriptChange={(text) => setContent((prev) => prev + ' ' + text)}
+                disabled={loading}
+              />
             </div>
           </div>
 

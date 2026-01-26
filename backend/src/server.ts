@@ -6,6 +6,7 @@ import jwt from '@fastify/jwt';
 import { config } from './config/env';
 import { authRoutes } from './modules/auth/auth.routes';
 import { reflectionRoutes, chatRoutes } from './modules/reflections/reflection.routes';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
 
 const server = Fastify({
   logger: {
@@ -54,6 +55,7 @@ async function start() {
     await server.register(authRoutes, { prefix: '/api/auth' });
     await server.register(reflectionRoutes, { prefix: '/api/reflections' });
     await server.register(chatRoutes, { prefix: '/api/chat' });
+    await server.register(analyticsRoutes, { prefix: '/api/analytics' });
 
     // Start server
     await server.listen({
