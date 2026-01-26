@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiRequest } from './client';
 
 export interface MindWeatherScore {
   overallScore: number;
@@ -25,23 +25,22 @@ export const analyticsApi = {
    * 마음 날씨 지수 계산
    */
   async calculate(): Promise<MindWeatherScore> {
-    const response = await apiClient.post('/analytics/calculate');
-    return response.data;
+    return apiRequest('/api/analytics/calculate', {
+      method: 'POST',
+    });
   },
 
   /**
    * 최신 마음 날씨 지수 조회
    */
   async getLatest(): Promise<MindWeatherScore> {
-    const response = await apiClient.get('/analytics/mind-weather');
-    return response.data;
+    return apiRequest('/api/analytics/mind-weather');
   },
 
   /**
    * 트렌드 데이터 조회
    */
   async getTrends(days: number = 30): Promise<{ trend: TrendData[]; period: { days: number } }> {
-    const response = await apiClient.get(`/analytics/trends?days=${days}`);
-    return response.data;
+    return apiRequest(`/api/analytics/trends?days=${days}`);
   },
 };
