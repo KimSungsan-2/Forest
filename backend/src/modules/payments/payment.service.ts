@@ -1,6 +1,6 @@
 // 결제 비즈니스 로직
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../config/database';
 import { tossPaymentsClient } from './toss.service';
 import {
   CreatePaymentInput,
