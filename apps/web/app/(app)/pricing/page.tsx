@@ -1,8 +1,31 @@
 'use client';
 
+import { useState } from 'react';
+import { useTossPayments } from '@/lib/hooks/useTossPayments';
+
 export default function PricingPage() {
+  const { isLoaded, isProcessing, error, requestPayment } = useTossPayments();
+  const [selectedPlan, setSelectedPlan] = useState<'premium' | 'family' | null>(null);
+
+  const handleUpgrade = async (plan: 'premium' | 'family') => {
+    setSelectedPlan(plan);
+    try {
+      await requestPayment(plan);
+    } catch (err) {
+      console.error('Payment error:', err);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* 에러 표시 */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          <p className="font-semibold">결제 오류</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">요금제 선택</h1>
         <p className="text-xl text-gray-600">
@@ -102,10 +125,11 @@ export default function PricingPage() {
           </ul>
 
           <button
-            onClick={() => alert('결제 시스템은 곧 추가됩니다!')}
-            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
+            onClick={() => handleUpgrade('premium')}
+            disabled={!isLoaded || isProcessing}
+            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            업그레이드 →
+            {isProcessing && selectedPlan === 'premium' ? '처리 중...' : '업그레이드 →'}
           </button>
 
           <p className="text-center text-sm text-gray-600 mt-4">
@@ -147,10 +171,11 @@ export default function PricingPage() {
           </ul>
 
           <button
-            onClick={() => alert('결제 시스템은 곧 추가됩니다!')}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
+            onClick={() => handleUpgrade('family')}
+            disabled={!isLoaded || isProcessing}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            업그레이드 →
+            {isProcessing && selectedPlan === 'family' ? '처리 중...' : '업그레이드 →'}
           </button>
 
           <p className="text-center text-sm text-gray-600 mt-4">
@@ -215,10 +240,11 @@ export default function PricingPage() {
           카드 정보 없이 프리미엄 기능을 먼저 경험해보세요
         </p>
         <button
-          onClick={() => alert('무료 체험은 곧 시작됩니다!')}
-          className="bg-white text-green-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors shadow-xl"
+          onClick={() => handleUpgrade('premium')}
+          disabled={!isLoaded || isProcessing}
+          className="bg-white text-green-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          무료로 시작하기 →
+          {isProcessing ? '처리 중...' : '무료로 시작하기 →'}
         </button>
       </div>
     </div>

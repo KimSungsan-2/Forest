@@ -17,6 +17,10 @@ const envSchema = z.object({
   // Anthropic
   ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-'),
 
+  // Toss Payments
+  TOSS_SECRET_KEY: z.string().optional(), // test_sk_... or live_sk_...
+  TOSS_CLIENT_KEY: z.string().optional(), // test_ck_... or live_ck_...
+
   // Server
   PORT: z.string().transform(Number).default('3001'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -42,6 +46,8 @@ export const config = {
   jwtSecret: parsedEnv.data.JWT_SECRET,
   jwtExpiresIn: parsedEnv.data.JWT_EXPIRES_IN,
   anthropicApiKey: parsedEnv.data.ANTHROPIC_API_KEY,
+  tossSecretKey: parsedEnv.data.TOSS_SECRET_KEY || '',
+  tossClientKey: parsedEnv.data.TOSS_CLIENT_KEY || '',
   port: parsedEnv.data.PORT,
   nodeEnv: parsedEnv.data.NODE_ENV,
   allowedOrigins: parsedEnv.data.ALLOWED_ORIGINS,

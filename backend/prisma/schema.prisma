@@ -19,13 +19,15 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 
-  // 구독 정보
-  subscriptionTier String @default("free") @map("subscription_tier") // "free" | "premium"
+  // 구독 정보 (레거시 필드 - Subscription 모델로 마이그레이션 중)
+  subscriptionTier String @default("free") @map("subscription_tier") // "free" | "premium" | "family"
   subscriptionExpiresAt DateTime? @map("subscription_expires_at")
 
   // 관계
   reflections Reflection[]
   mindWeatherScores MindWeatherScore[]
+  subscription Subscription?
+  payments Payment[]
 
   @@index([email])
   @@map("users")
@@ -111,4 +113,67 @@ model Session {
   @@index([token])
   @@index([userId])
   @@map("sessions")
+}
+
+// 구독 관리 (Toss Payments)
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 구독 정보
+  plan      String   @default("free") // "free" | "premium" | "family"
+  status    String   @default("active") // "active" | "canceled" | "past_due" | "paused"
+
+  // 결제 주기
+  currentPeriodStart DateTime @default(now()) @map("current_period_start")
+  currentPeriodEnd   DateTime @map("current_period_end")
+
+  // Toss Payments 정보
+  paymentMethod String? @map("payment_method") // "card" | "bank" | "virtual_account"
+  billingKey    String? @unique @map("billing_key") // 자동결제용 빌링키
+  customerKey   String? @map("customer_key") // Toss 고객 키
+
+  // 취소 정보
+  canceledAt    DateTime? @map("canceled_at")
+  cancelReason  String?   @map("cancel_reason")
+
+  // 타임스탬프
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// 결제 내역 (Toss Payments)
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 결제 금액 및 플랜
+  amount      Int      // 결제 금액 (원)
+  plan        String   // "premium" | "family"
+  description String?  // 결제 설명
+
+  // Toss Payments 정보
+  orderId     String   @unique @map("order_id") // 주문 ID (UUID)
+  paymentKey  String?  @unique @map("payment_key") // Toss 결제 키
+  method      String?  // "카드" | "가상계좌" | "계좌이체" 등
+
+  // 결제 상태
+  status      String   @default("pending") // "pending" | "completed" | "failed" | "canceled" | "refunded"
+  failReason  String?  @map("fail_reason")
+
+  // 타임스탬프
+  paidAt      DateTime? @map("paid_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderId])
+  @@map("payments")
 }
