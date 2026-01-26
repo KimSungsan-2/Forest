@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { authService } from './auth.service';
 import { signupSchema, loginSchema, SignupInput, LoginInput, JwtPayload } from './auth.types';
 import { config } from '../../config/env';
+import { getUsageInfo } from '../../middleware/subscription';
 
 export class AuthController {
   /**
@@ -88,6 +89,38 @@ export class AuthController {
     } catch (error) {
       return reply.code(401).send({
         error: '인증이 필요합니다',
+      });
+    }
+  }
+
+  /**
+   * GET /api/auth/usage
+   * 현재 사용자의 사용량 정보 조회
+   */
+  async getUsage(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      await request.jwtVerify();
+      const payload = request.user as JwtPayload;
+
+      if (payload.userId === 'guest') {
+        return reply.code(200).send({
+          subscriptionTier: 'guest',
+          isUnlimited: true,
+          message: '게스트 사용자는 무제한입니다',
+        });
+      }
+
+      const usageInfo = await getUsageInfo(payload.userId);
+
+      return reply.code(200).send(usageInfo);
+    } catch (error) {
+      if (error instanceof Error) {
+        return reply.code(400).send({
+          error: error.message,
+        });
+      }
+      return reply.code(500).send({
+        error: '사용량 조회에 실패했습니다',
       });
     }
   }

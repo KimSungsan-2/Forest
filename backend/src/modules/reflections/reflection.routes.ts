@@ -1,13 +1,15 @@
 import { FastifyInstance } from 'fastify';
 import { reflectionController } from './reflection.controller';
 import { authenticate, authenticateOptional } from '../../middleware/auth';
+import { checkReflectionLimit } from '../../middleware/subscription';
 
 export async function reflectionRoutes(server: FastifyInstance) {
   // 게스트 모드 지원: 인증 선택사항
   server.addHook('preHandler', authenticateOptional);
 
-  // 회고 생성
+  // 회고 생성 (사용량 제한 체크)
   server.post('/', {
+    preHandler: checkReflectionLimit,
     handler: reflectionController.createReflection.bind(reflectionController),
   });
 

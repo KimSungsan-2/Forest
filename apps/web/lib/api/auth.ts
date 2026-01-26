@@ -60,4 +60,17 @@ export const authApi = {
   isAuthenticated: (): boolean => {
     return !!authApi.getToken();
   },
+
+  /**
+   * 사용량 정보 조회
+   */
+  getUsage: async (): Promise<{
+    subscriptionTier: string;
+    isUnlimited: boolean;
+    currentUsage: number | null;
+    limit: number | null;
+    remaining: number | null;
+  }> => {
+    return apiRequest('/api/auth/usage');
+  },
 };

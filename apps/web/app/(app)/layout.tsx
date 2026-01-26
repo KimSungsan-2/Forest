@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
+import UsageBanner from '@/components/UsageBanner';
 
 export default function AppLayout({
   children,
@@ -184,6 +185,9 @@ export default function AppLayout({
           마음 날씨
         </Link>
       </nav>
+
+      {/* 사용량 배너 */}
+      <UsageBanner />
 
       {/* 메인 콘텐츠 */}
       <main>{children}</main>

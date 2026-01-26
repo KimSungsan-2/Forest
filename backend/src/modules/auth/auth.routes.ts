@@ -16,4 +16,9 @@ export async function authRoutes(server: FastifyInstance) {
   server.get('/me', {
     handler: authController.getMe.bind(authController),
   });
+
+  // 사용량 정보 조회
+  server.get('/usage', {
+    handler: authController.getUsage.bind(authController),
+  });
 }
