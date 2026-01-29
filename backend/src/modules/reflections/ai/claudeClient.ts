@@ -123,6 +123,53 @@ export class ClaudeClient {
   }
 
   /**
+   * 상담 마무리 시 추천 액션 생성
+   *
+   * 대화 내용을 기반으로 내일 실천할 수 있는 구체적인 활동이나 말을 추천합니다.
+   */
+  async generateRecommendedAction(
+    conversations: Message[],
+    emotion?: EmotionTag
+  ): Promise<{ text: string; tokensUsed: number }> {
+    const systemPrompt = `당신은 부모의 감정 지원 동반자입니다. 지금까지의 상담 대화를 바탕으로, 내일 실천할 수 있는 **구체적인 추천 액션 1가지**를 제안해주세요.
+
+**형식:**
+- "내일은 [구체적인 활동]을 해보세요." 또는 "내일은 아이에게 '[구체적인 말]'이라고 말해보세요." 형태로 작성
+- 반드시 대화 내용과 관련된 맞춤형 제안이어야 합니다
+- 짧고 실천 가능한 것이어야 합니다 (1-2문장)
+
+**예시:**
+- "내일은 아이와 10분간 함께 그림을 그려보세요. 완벽하지 않아도, 함께하는 시간 자체가 선물이에요."
+- "내일은 아이에게 '엄마(아빠)가 어제 소리 질러서 미안해. 너를 정말 사랑해'라고 말해보세요."
+- "내일은 퇴근 후 5분만 혼자 깊게 숨을 쉬는 시간을 가져보세요. 당신도 쉴 자격이 있어요."
+- "내일은 아이가 말할 때 핸드폰을 내려놓고 눈을 맞추며 들어보세요. 작은 변화가 큰 연결을 만들어요."
+
+**규칙:**
+- 반드시 한국어로 응답
+- 교훈적이거나 설교하는 톤 금지
+- 따뜻하고 격려하는 톤
+- 추천 액션만 출력 (다른 인사말이나 부가 설명 없이)`;
+
+    const response = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: conversations.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    });
+
+    const textContent = response.content.find((block) => block.type === 'text');
+    const text = textContent && 'text' in textContent ? textContent.text : '';
+
+    return {
+      text,
+      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+    };
+  }
+
+  /**
    * 감정 분석 (간단한 키워드 기반)
    *
    * Claude API를 사용한 더 정교한 감정 분석도 가능하지만,

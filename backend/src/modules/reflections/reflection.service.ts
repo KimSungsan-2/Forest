@@ -41,7 +41,7 @@ export class ReflectionService {
           emotionalTone: null,
           sentimentScore: null,
           stressLevel: null,
-          voiceInputUrl: null,
+          recommendedAction: null,
         },
         aiResponse: {
           id: `${tempId}-ai`,
@@ -168,6 +168,55 @@ export class ReflectionService {
     });
 
     return this.mapConversationToResponse(aiConversation);
+  }
+
+  /**
+   * 상담 마무리 - 추천 액션 생성
+   */
+  async endSession(
+    userId: string,
+    reflectionId: string
+  ): Promise<{ recommendedAction: string }> {
+    const reflection = await prisma.reflection.findFirst({
+      where: {
+        id: reflectionId,
+        userId,
+      },
+      include: {
+        conversations: {
+          orderBy: { timestamp: 'asc' },
+        },
+      },
+    });
+
+    if (!reflection) {
+      throw new Error('회고를 찾을 수 없거나 접근 권한이 없습니다');
+    }
+
+    // 이미 추천 액션이 있으면 기존 것을 반환
+    if (reflection.recommendedAction) {
+      return { recommendedAction: reflection.recommendedAction };
+    }
+
+    // 대화 히스토리를 Claude API 형식으로 변환
+    const messages = reflection.conversations.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
+
+    // AI로 추천 액션 생성
+    const result = await claudeClient.generateRecommendedAction(
+      messages,
+      reflection.emotionalTone as EmotionTag
+    );
+
+    // DB에 저장
+    await prisma.reflection.update({
+      where: { id: reflectionId },
+      data: { recommendedAction: result.text },
+    });
+
+    return { recommendedAction: result.text };
   }
 
   /**
@@ -303,6 +352,7 @@ export class ReflectionService {
       emotionalTone: reflection.emotionalTone,
       sentimentScore: reflection.sentimentScore,
       stressLevel: reflection.stressLevel,
+      recommendedAction: reflection.recommendedAction ?? null,
       createdAt: reflection.createdAt,
       updatedAt: reflection.updatedAt,
       conversationCount,

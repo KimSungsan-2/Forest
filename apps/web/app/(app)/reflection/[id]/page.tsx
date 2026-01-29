@@ -15,6 +15,8 @@ export default function ReflectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
+  const [recommendedAction, setRecommendedAction] = useState<string | null>(null);
+  const [endingSession, setEndingSession] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +33,9 @@ export default function ReflectionDetailPage() {
       const data = await reflectionApi.getById(id);
       setReflection(data.reflection);
       setConversations(data.conversations);
+      if (data.reflection.recommendedAction) {
+        setRecommendedAction(data.reflection.recommendedAction);
+      }
     } catch (error) {
       console.error('Failed to load reflection:', error);
       alert('회고를 불러오는데 실패했습니다');
@@ -75,6 +80,18 @@ export default function ReflectionDetailPage() {
       setConversations((prev) => prev.filter((c) => c.id !== tempUserMessage.id));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleEndSession = async () => {
+    setEndingSession(true);
+    try {
+      const result = await reflectionApi.endSession(id);
+      setRecommendedAction(result.recommendedAction);
+    } catch (error: any) {
+      alert(error.message || '추천 액션 생성에 실패했습니다');
+    } finally {
+      setEndingSession(false);
     }
   };
 
@@ -213,30 +230,69 @@ export default function ReflectionDetailPage() {
         </div>
       </div>
 
+      {/* 추천 액션 카드 */}
+      {recommendedAction && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl shadow-sm border border-amber-200 p-6 mb-6">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center text-white text-xl">
+              🌱
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-amber-900 mb-2">
+                내일을 위한 추천 액션
+              </h3>
+              <p className="text-amber-800 whitespace-pre-wrap leading-relaxed">
+                {recommendedAction}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 메시지 입력 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex space-x-4">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="계속 대화하기..."
-            disabled={sending}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:bg-gray-100"
-          />
+      {!recommendedAction ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex space-x-4">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="계속 대화하기..."
+              disabled={sending}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:bg-gray-100"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sending}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+            >
+              {sending ? '전송 중...' : '전송'}
+            </button>
+          </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-gray-500">
+              💡 더 깊이 탐구하고 싶은 부분이 있다면 자유롭게 물어보세요
+            </p>
+            <button
+              onClick={handleEndSession}
+              disabled={endingSession || conversations.length < 2}
+              className="text-sm text-orange-600 hover:text-orange-700 disabled:text-gray-400 font-medium transition-colors"
+            >
+              {endingSession ? '생성 중...' : '상담 마무리하기'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center">
           <button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || sending}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+            onClick={() => router.push('/vent')}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
           >
-            {sending ? '전송 중...' : '전송'}
+            새로운 상담 시작하기
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          💡 더 깊이 탐구하고 싶은 부분이 있다면 자유롭게 물어보세요
-        </p>
-      </div>
+      )}
     </div>
   );
 }

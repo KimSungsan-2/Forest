@@ -27,6 +27,11 @@ export async function reflectionRoutes(server: FastifyInstance) {
   server.delete('/:id', {
     handler: reflectionController.deleteReflection.bind(reflectionController),
   });
+
+  // 상담 마무리 - 추천 액션 생성
+  server.post('/:id/end-session', {
+    handler: reflectionController.endSession.bind(reflectionController),
+  });
 }
 
 export async function chatRoutes(server: FastifyInstance) {

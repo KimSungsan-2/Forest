@@ -51,6 +51,9 @@ model Reflection {
   sentimentScore Float?  @map("sentiment_score") // -1.0 to 1.0
   stressLevel   Int?     @map("stress_level") // 1-10 scale
 
+  // 상담 마무리 추천 액션
+  recommendedAction String? @map("recommended_action") @db.Text
+
   // 관계
   conversations Conversation[]
 

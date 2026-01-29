@@ -97,6 +97,26 @@ export class ReflectionController {
   }
 
   /**
+   * POST /api/reflections/:id/end-session
+   * 상담 마무리 - 추천 액션 생성
+   */
+  async endSession(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const user = getAuthUser(request);
+      const { id } = request.params as { id: string };
+
+      const result = await reflectionService.endSession(user.userId, id);
+
+      return reply.code(200).send(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        return reply.code(400).send({ error: error.message });
+      }
+      return reply.code(500).send({ error: '서버 오류가 발생했습니다' });
+    }
+  }
+
+  /**
    * POST /api/chat/send
    * 대화 메시지 전송 (비스트리밍)
    */

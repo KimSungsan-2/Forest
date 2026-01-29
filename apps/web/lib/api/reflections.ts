@@ -60,6 +60,15 @@ export const reflectionApi = {
   },
 
   /**
+   * 상담 마무리 - 추천 액션 생성
+   */
+  endSession: async (id: string): Promise<{ recommendedAction: string }> => {
+    return apiRequest(`/api/reflections/${id}/end-session`, {
+      method: 'POST',
+    });
+  },
+
+  /**
    * 메시지 전송 (비스트리밍)
    */
   sendMessage: async (data: SendMessageRequest): Promise<Conversation> => {

@@ -16,6 +16,7 @@ export interface Reflection {
   emotionalTone: string | null;
   sentimentScore: number | null;
   stressLevel: number | null;
+  recommendedAction: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   conversationCount?: number;
