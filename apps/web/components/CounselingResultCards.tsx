@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useState } from 'react';
 
 interface CounselingResultCardsProps {
   emotion?: string;
@@ -881,6 +881,7 @@ function AfterSceneContent({ topic }: { topic: SceneTopic }) {
 export default function CounselingResultCards({ emotion, emotionEmoji, userContent, aiContent }: CounselingResultCardsProps) {
   const beforeSvgRef = useRef<SVGSVGElement>(null);
   const afterSvgRef = useRef<SVGSVGElement>(null);
+  const [fullscreenType, setFullscreenType] = useState<'before' | 'after' | null>(null);
 
   const handleDownload = useCallback(async (type: 'before' | 'after') => {
     const svgEl = type === 'before' ? beforeSvgRef.current : afterSvgRef.current;
@@ -916,7 +917,7 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* 상담 전 */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full">
+          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setFullscreenType('before')}>
             <svg ref={beforeSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
               <defs>
                 <linearGradient id="bgBefore" x1="0" y1="0" x2="0" y2="1">
@@ -966,7 +967,7 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
 
         {/* 상담 후 */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full">
+          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setFullscreenType('after')}>
             <svg ref={afterSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
               <defs>
                 <linearGradient id="bgAfter" x1="0" y1="0" x2="0" y2="1">
@@ -1054,6 +1055,155 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
           📥 전체 저장하기
         </button>
       </div>
+
+      {/* 전체 화면 모달 */}
+      {fullscreenType && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center p-4"
+          onClick={() => setFullscreenType(null)}
+        >
+          {/* 닫기 버튼 */}
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-3xl font-light z-10 w-10 h-10 flex items-center justify-center"
+            onClick={() => setFullscreenType(null)}
+          >
+            ✕
+          </button>
+
+          {/* 전/후 전환 탭 */}
+          <div className="flex gap-2 mb-4">
+            <button
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                fullscreenType === 'before'
+                  ? 'bg-gray-600 text-white'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+              onClick={(e) => { e.stopPropagation(); setFullscreenType('before'); }}
+            >
+              상담 전
+            </button>
+            <button
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                fullscreenType === 'after'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+              onClick={(e) => { e.stopPropagation(); setFullscreenType('after'); }}
+            >
+              상담 후
+            </button>
+          </div>
+
+          {/* 확대된 SVG 이미지 */}
+          <div
+            className="max-w-[90vw] max-h-[75vh] overflow-hidden rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" className="w-full h-full block">
+              <defs>
+                <linearGradient id="bgFullBefore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={theme.before.bg1} />
+                  <stop offset="100%" stopColor={theme.before.bg2} />
+                </linearGradient>
+                <linearGradient id="bgFullAfter" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={theme.after.bg1} />
+                  <stop offset="40%" stopColor={theme.after.bg2} />
+                  <stop offset="100%" stopColor={theme.after.accent} stopOpacity="0.3" />
+                </linearGradient>
+                <radialGradient id="sunRayFull" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#fff9c4" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#fff9c4" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+
+              {fullscreenType === 'before' ? (
+                <>
+                  <rect width="400" height="520" fill="url(#bgFullBefore)" />
+                  {variant === 0 && (<>
+                    <circle cx="320" cy="70" r="28" fill="#555" opacity="0.14">
+                      <animate attributeName="opacity" values="0.14;0.22;0.14" dur="4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="324" cy="65" r="22" fill="url(#bgFullBefore)" />
+                  </>)}
+                  {variant === 1 && (<>
+                    {[{x:80,y:50},{x:150,y:90},{x:320,y:45},{x:350,y:110},{x:60,y:130},{x:250,y:70}].map((s,i) => (
+                      <circle key={`fbs-${i}`} cx={s.x} cy={s.y} r={1.5+i%2} fill="#fff" opacity={0.15+i*0.03}>
+                        <animate attributeName="opacity" values={`${0.15+i*0.03};0.05;${0.15+i*0.03}`} dur={`${2+i*0.5}s`} repeatCount="indefinite" />
+                      </circle>
+                    ))}
+                    <circle cx="330" cy="60" r="20" fill="#555" opacity="0.12" />
+                    <circle cx="334" cy="55" r="16" fill="url(#bgFullBefore)" />
+                  </>)}
+                  {variant === 2 && (<>
+                    {[50,120,190,260,330].map((x,i) => (
+                      <line key={`fbr-${i}`} x1={x} y1={60+i*8} x2={x-3} y2={78+i*8} stroke={theme.before.accent} strokeWidth="1" opacity="0.2">
+                        <animate attributeName="y1" values={`${60+i*8};${340};${60+i*8}`} dur={`${1.5+i*0.2}s`} repeatCount="indefinite" />
+                        <animate attributeName="y2" values={`${78+i*8};${358};${78+i*8}`} dur={`${1.5+i*0.2}s`} repeatCount="indefinite" />
+                      </line>
+                    ))}
+                    <ellipse cx="140" cy="55" rx="50" ry="20" fill="#333" opacity="0.25" />
+                    <ellipse cx="280" cy="70" rx="45" ry="18" fill="#333" opacity="0.2" />
+                  </>)}
+                  <BeforeSceneContent topic={topic} />
+                  <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
+                  <text x="200" y="428" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 전</text>
+                  <text x="200" y="453" textAnchor="middle" fill={theme.before.accent} fontFamily="sans-serif" fontSize="13">{emoji} {theme.beforeTitle}</text>
+                  <text x="200" y="476" textAnchor="middle" fill="#9ca3af" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.beforeScene}</text>
+                  <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
+                </>
+              ) : (
+                <>
+                  <rect width="400" height="520" fill="url(#bgFullAfter)" />
+                  {variant === 0 && (<>
+                    <circle cx="320" cy="70" r="50" fill="url(#sunRayFull)">
+                      <animate attributeName="r" values="50;60;50" dur="4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="320" cy="70" r="24" fill="#fff9c4" opacity="0.6">
+                      <animate attributeName="r" values="24;27;24" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <g opacity="0.65">
+                      <ellipse cx="90" cy="85" rx="35" ry="16" fill="white">
+                        <animate attributeName="cx" values="90;108;90" dur="8s" repeatCount="indefinite" />
+                      </ellipse>
+                      <ellipse cx="118" cy="77" rx="25" ry="12" fill="white">
+                        <animate attributeName="cx" values="118;136;118" dur="9s" repeatCount="indefinite" />
+                      </ellipse>
+                    </g>
+                  </>)}
+                  {variant === 1 && (<>
+                    {['#ef5350','#ff9800','#ffeb3b','#66bb6a','#42a5f5','#ab47bc'].map((c,i) => (
+                      <path key={`frb-${i}`} d={`M30,${155+i*4} Q200,${40+i*3} 370,${155+i*4}`} fill="none" stroke={c} strokeWidth="3" opacity="0.12" />
+                    ))}
+                  </>)}
+                  {variant === 2 && (<>
+                    <circle cx="200" cy="60" r="40" fill="#fff9c4" opacity="0.4">
+                      <animate attributeName="r" values="40;48;40" dur="5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="200" cy="60" r="65" fill="#fff9c4" opacity="0.1" />
+                    {[{x:100,y:80},{x:130,y:65},{x:160,y:75},{x:280,y:90},{x:310,y:78}].map((b,i) => (
+                      <path key={`fbd-${i}`} d={`M${b.x},${b.y} Q${b.x-5},${b.y-5} ${b.x-10},${b.y} M${b.x},${b.y} Q${b.x+5},${b.y-5} ${b.x+10},${b.y}`} stroke="#666" strokeWidth="1.2" fill="none" opacity="0.25" />
+                    ))}
+                  </>)}
+                  <AfterSceneContent topic={topic} />
+                  <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />
+                  <text x="200" y="428" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 후</text>
+                  <text x="200" y="453" textAnchor="middle" fill={theme.after.accent} fontFamily="sans-serif" fontSize="13">🌿 {theme.afterTitle}</text>
+                  <text x="200" y="476" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.afterScene}</text>
+                  <text x="200" y="505" textAnchor="middle" fill="#81c784" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
+                </>
+              )}
+            </svg>
+          </div>
+
+          {/* 하단 저장 버튼 */}
+          <button
+            className="mt-4 bg-white/15 hover:bg-white/25 text-white px-5 py-2 rounded-full text-sm font-medium transition-colors"
+            onClick={(e) => { e.stopPropagation(); handleDownload(fullscreenType); }}
+          >
+            📥 이미지 저장
+          </button>
+        </div>
+      )}
     </div>
   );
 }
