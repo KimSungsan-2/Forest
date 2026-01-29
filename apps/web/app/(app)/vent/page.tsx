@@ -78,10 +78,18 @@ export default function VentPage() {
   const [isCounselingComplete, setIsCounselingComplete] = useState(false);
   const [finalAiResponse, setFinalAiResponse] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const counselingResultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, chatLoading]);
+    if (isCounselingComplete && !chatLoading) {
+      // 상담 완료 시 결과 섹션의 시작 부분이 화면 상단에 오도록 스크롤
+      setTimeout(() => {
+        counselingResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, chatLoading, isCounselingComplete]);
 
   const handleEmotionSelect = (emotion: EmotionTag) => {
     setSelectedEmotion(emotion);
@@ -423,8 +431,8 @@ export default function VentPage() {
           {/* 상담 완료 시 결과 표시 */}
           {isCounselingComplete && !chatLoading && (
             <>
-              {/* 구분선 */}
-              <div className="flex items-center gap-3 py-2">
+              {/* 구분선 — 스크롤 타겟 */}
+              <div ref={counselingResultRef} className="flex items-center gap-3 py-2">
                 <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
                 <span className="text-green-300 text-xs">🌿</span>
                 <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />

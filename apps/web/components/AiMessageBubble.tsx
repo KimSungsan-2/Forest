@@ -14,6 +14,40 @@ interface ContentPart {
   highlighted: boolean;
 }
 
+/**
+ * Parse markdown links [text](url) into React elements
+ */
+function renderTextWithLinks(text: string): React.ReactNode[] {
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+    nodes.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-green-700 underline underline-offset-2 hover:text-green-900 font-medium"
+      >
+        {match[1]}
+      </a>
+    );
+    lastIndex = linkRegex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes.length > 0 ? nodes : [text];
+}
+
 function parseHighlightedContent(text: string): ContentPart[] {
   const parts: ContentPart[] = [];
   const regex = /==(.*?)==/g;
@@ -108,7 +142,7 @@ export default function AiMessageBubble({
                 <span className="text-green-500 ml-1">&rdquo;</span>
               </blockquote>
             ) : (
-              <span key={index}>{part.text}</span>
+              <span key={index}>{renderTextWithLinks(part.text)}</span>
             )
           )}
         </div>
