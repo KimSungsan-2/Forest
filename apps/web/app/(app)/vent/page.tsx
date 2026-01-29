@@ -175,26 +175,41 @@ export default function VentPage() {
 
       {/* Step 3: AI 응답 */}
       {step === 'processing' && (
-        <div className="space-y-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="space-y-8">
+          {/* 헤더 영역 */}
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-lg mb-2">
+              <span className="text-3xl">🌲</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
               {loading ? '숲이 당신의 이야기를 듣고 있어요' : '숲이 전하는 이야기'}
             </h1>
             <p className="text-gray-500 text-sm">
-              {loading ? '잠시만 기다려 주세요...' : '당신을 위한 따뜻한 메시지입니다'}
+              {loading ? '따뜻한 마음으로 읽고 있어요...' : '당신을 위한 따뜻한 메시지입니다'}
             </p>
           </div>
 
+          {/* 구분선 */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
+            <span className="text-green-300 text-sm">🌿</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
+          </div>
+
           {/* 사용자 메시지 */}
-          <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-            <div className="flex items-start space-x-3">
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/60 shadow-sm">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full translate-x-6 -translate-y-6" />
+            <div className="relative flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-blue-200/50">
                   나
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-gray-800 whitespace-pre-wrap">{content}</p>
+                <span className="text-xs font-semibold text-blue-600 bg-blue-100/80 px-2.5 py-1 rounded-full">
+                  나의 이야기
+                </span>
+                <p className="text-gray-700 whitespace-pre-wrap leading-7 mt-3 text-[15px]">{content}</p>
               </div>
             </div>
           </div>
@@ -202,16 +217,22 @@ export default function VentPage() {
           {/* AI 응답 */}
           <div className="min-h-[200px]">
             {loading ? (
-              <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-6 border border-green-200/60">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xl shadow-md">
-                    🌲
-                  </div>
-                  <div className="flex items-center space-x-2 pt-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <span className="text-sm text-green-600 ml-2">숲이 당신의 이야기를 듣고 있어요...</span>
+              <div className="relative overflow-hidden rounded-2xl shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50" />
+                <div className="relative h-1 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400" />
+                <div className="relative p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg ring-2 ring-green-200/50">
+                      🌲
+                    </div>
+                    <div className="flex flex-col space-y-3 pt-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-bounce" />
+                        <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                        <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                      </div>
+                      <span className="text-sm text-green-600 font-medium">숲이 당신의 이야기를 듣고 있어요...</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -225,13 +246,13 @@ export default function VentPage() {
             <div className="flex space-x-4">
               <button
                 onClick={handleNewReflection}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 rounded-lg transition-colors"
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-4 rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow"
               >
                 새로운 회고 작성
               </button>
               <button
                 onClick={handleContinueConversation}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors"
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-4 rounded-xl transition-all shadow-md hover:shadow-lg"
               >
                 대화 계속하기 →
               </button>
