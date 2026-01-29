@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
     domains: [],
   },
   turbopack: {},
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://forest-of-calm-api.onrender.com',
+  },
 };
 
 export default withPWA(nextConfig);
