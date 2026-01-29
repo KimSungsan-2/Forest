@@ -201,7 +201,7 @@ export default function ReflectionDetailPage() {
                 <AiMessageBubble
                   content={conversation.content}
                   timestamp={formatTime(conversation.timestamp)}
-                  className="max-w-[80%]"
+                  className="max-w-full"
                 />
               ) : (
                 <div className="max-w-[80%] bg-blue-50 border-blue-200 rounded-xl p-4 border">
@@ -247,8 +247,8 @@ export default function ReflectionDetailPage() {
 
       {/* 메시지 입력 */}
       {!recommendedAction ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex space-x-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+          <div className="flex gap-2 sm:gap-3">
             <input
               type="text"
               value={newMessage}
@@ -256,26 +256,26 @@ export default function ReflectionDetailPage() {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="계속 대화하기..."
               disabled={sending}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:bg-gray-100"
+              className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:bg-gray-100 text-sm sm:text-base"
             />
             <button
               onClick={handleSendMessage}
               disabled={!newMessage.trim() || sending}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg transition-colors font-semibold whitespace-nowrap shrink-0 text-sm sm:text-base"
             >
-              {sending ? '전송 중...' : '전송'}
+              {sending ? '...' : '전송'}
             </button>
           </div>
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-gray-500">
+          <div className="flex justify-between items-center mt-2 gap-2">
+            <p className="text-xs text-gray-500 truncate">
               💡 더 깊이 탐구하고 싶은 부분이 있다면 자유롭게 물어보세요
             </p>
             <button
               onClick={handleEndSession}
               disabled={endingSession || conversations.length < 2}
-              className="text-sm text-orange-600 hover:text-orange-700 disabled:text-gray-400 font-medium transition-colors"
+              className="text-xs sm:text-sm text-orange-600 hover:text-orange-700 disabled:text-gray-400 font-medium transition-colors whitespace-nowrap shrink-0"
             >
-              {endingSession ? '생성 중...' : '상담 마무리하기'}
+              {endingSession ? '생성 중...' : '상담 마무리'}
             </button>
           </div>
         </div>

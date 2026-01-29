@@ -45,8 +45,10 @@ export default function MindWeatherPage() {
         const data = await analyticsApi.getLatest();
         setWeatherData(data);
       } catch (err: any) {
-        // 404: 아직 계산되지 않음
-        if (err.response?.status === 404) {
+        // 404: 아직 계산되지 않음, 402: 프리미엄 전용
+        if (err.status === 404) {
+          setWeatherData(null);
+        } else if (err.status === 402) {
           setWeatherData(null);
         } else {
           throw err;
@@ -69,7 +71,11 @@ export default function MindWeatherPage() {
       setWeatherData(data);
     } catch (err: any) {
       console.error('Failed to calculate mind weather:', err);
-      setError(err.response?.data?.error || '계산에 실패했습니다');
+      if (err.status === 402) {
+        setError(err.data?.message || '프리미엄 전용 기능입니다. 업그레이드 후 이용해주세요.');
+      } else {
+        setError(err.message || '계산에 실패했습니다');
+      }
     } finally {
       setCalculating(false);
     }
@@ -118,23 +124,33 @@ export default function MindWeatherPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* 헤더 */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">마음 날씨 지수</h1>
-          <p className="text-gray-600">당신의 감정 트렌드와 번아웃 위험도</p>
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">마음 날씨 지수</h1>
+            <p className="text-sm sm:text-base text-gray-600">당신의 감정 트렌드와 번아웃 위험도</p>
+          </div>
+          <button
+            onClick={handleCalculate}
+            disabled={calculating}
+            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap shrink-0"
+          >
+            {calculating ? '계산 중...' : weatherData ? '다시 계산' : '지수 계산하기'}
+          </button>
         </div>
-        <button
-          onClick={handleCalculate}
-          disabled={calculating}
-          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-        >
-          {calculating ? '계산 중...' : weatherData ? '다시 계산' : '지수 계산하기'}
-        </button>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">{error}</p>
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-5">
+          <p className="text-red-600 font-medium">{error}</p>
+          {error.includes('프리미엄') && (
+            <a
+              href="/pricing"
+              className="inline-block mt-3 text-sm font-semibold text-green-600 hover:text-green-700 underline"
+            >
+              프리미엄 플랜 보기 →
+            </a>
+          )}
         </div>
       )}
 

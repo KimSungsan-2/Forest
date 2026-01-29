@@ -403,13 +403,13 @@ export default function VentPage() {
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleChatResponse(chatInput)}
                         placeholder={el.placeholder || '답변을 입력하세요...'}
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm sm:text-base bg-white"
+                        className="flex-1 min-w-0 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm sm:text-base bg-white"
                         autoFocus
                       />
                       <button
                         onClick={() => handleChatResponse(chatInput)}
                         disabled={!chatInput.trim()}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-4 py-2.5 rounded-full font-medium text-sm transition-colors"
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-4 py-2.5 rounded-full font-medium text-sm transition-colors whitespace-nowrap shrink-0"
                       >
                         전송
                       </button>
