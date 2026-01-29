@@ -27,10 +27,12 @@ function renderTextWithLinks(text: string): React.ReactNode[] {
     if (match.index > lastIndex) {
       nodes.push(text.slice(lastIndex, match.index));
     }
+    // encodeURI to handle Korean characters in URLs (e.g. YouTube search queries)
+    const safeUrl = encodeURI(decodeURI(match[2]));
     nodes.push(
       <a
         key={match.index}
-        href={match[2]}
+        href={safeUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="text-green-700 underline underline-offset-2 hover:text-green-900 font-medium"

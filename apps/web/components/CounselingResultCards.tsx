@@ -59,7 +59,16 @@ function detectTopic(content: string): SceneTopic {
   return 'default';
 }
 
-// ===== 주제별 색상 & 텍스트 =====
+// ===== 컨텐츠 해시로 변형 번호 생성 =====
+function getVariant(content: string, maxVariants: number): number {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % maxVariants;
+}
+
+// ===== 주제별 색상 & 텍스트 (변형 지원) =====
 interface SceneTheme {
   before: { bg1: string; bg2: string; accent: string };
   after: { bg1: string; bg2: string; accent: string };
@@ -69,90 +78,272 @@ interface SceneTheme {
   afterScene: string;
 }
 
-function getSceneTheme(topic: SceneTopic, emotion?: string): SceneTheme {
-  const themes: Record<SceneTopic, SceneTheme> = {
-    play: {
-      before: { bg1: '#2d2d44', bg2: '#1a1a2e', accent: '#9b59b6' },
-      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
-      beforeTitle: '지친 놀이 시간',
-      afterTitle: '함께하는 즐거운 놀이',
-      beforeScene: '바닥에 흩어진 장난감과 지친 마음',
-      afterScene: '인형과 함께 웃으며 잠든 가족',
-    },
-    yelling: {
-      before: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#e74c3c' },
-      after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ff9800' },
-      beforeTitle: '폭풍 속의 후회',
-      afterTitle: '포옹으로 회복하는 아침',
-      beforeScene: '번개와 함께 터진 감정의 소리',
-      afterScene: '사과와 포옹이 피어나는 따뜻한 순간',
-    },
-    tired: {
-      before: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d' },
-      after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ab47bc' },
-      beforeTitle: '끝없는 피로의 무게',
-      afterTitle: '쉬어도 된다는 허락',
-      beforeScene: '어깨 위 무거운 짐을 진 하루',
-      afterScene: '커피 한 잔과 함께 찾은 여유',
-    },
-    work: {
-      before: { bg1: '#1a2e2e', bg2: '#0d1b2a', accent: '#3498db' },
-      after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#26c6da' },
-      beforeTitle: '일과 육아 사이',
-      afterTitle: '퇴근 후 10분의 기적',
-      beforeScene: '갈라진 두 세계 사이에서',
-      afterScene: '따뜻한 불빛이 새어 나오는 집',
-    },
-    sleep: {
-      before: { bg1: '#0d1b2a', bg2: '#1b2838', accent: '#2c3e50' },
-      after: { bg1: '#e8eaf6', bg2: '#c5cae9', accent: '#5c6bc0' },
-      beforeTitle: '잠 못 드는 새벽',
-      afterTitle: '별빛 아래 평화로운 잠',
-      beforeScene: '시계만 째깍거리는 어둠 속',
-      afterScene: '아이와 함께 맞이하는 고요한 밤',
-    },
-    food: {
-      before: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017' },
-      after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffc107' },
-      beforeTitle: '밥 한 숟갈의 전쟁',
-      afterTitle: '함께 먹는 따뜻한 식탁',
-      beforeScene: '뒤집힌 그릇과 흩어진 음식',
-      afterScene: '스스로 숟가락을 든 작은 손',
-    },
-    screen: {
-      before: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#5dade2' },
-      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#4caf50' },
-      beforeTitle: '스크린 앞의 죄책감',
-      afterTitle: '함께 보는 시간의 가치',
-      beforeScene: '어두운 방, 화면만 빛나는 저녁',
-      afterScene: '나무 아래 책을 읽는 가족',
-    },
-    fighting: {
-      before: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad' },
-      after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#ec407a' },
-      beforeTitle: '갈라진 마음의 틈',
-      afterTitle: '다시 잡은 손',
-      beforeScene: '서로 등진 두 사람 사이의 균열',
-      afterScene: '손을 잡고 함께 웃는 가족',
-    },
-    lonely: {
-      before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e' },
-      after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#26a69a' },
-      beforeTitle: '혼자 감당하는 무게',
-      afterTitle: '연결된 따뜻한 손길',
-      beforeScene: '텅 빈 방에 홀로 앉은 밤',
-      afterScene: '누군가와 나누는 따뜻한 대화',
-    },
-    default: {
-      before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6' },
-      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
-      beforeTitle: emotion ? `${emotion}에 잠긴 하루` : '힘겨운 하루의 무게',
-      afterTitle: '마음의 짐을 내려놓는 순간',
-      beforeScene: '어둠 속 홀로 걷는 길',
-      afterScene: '숲에서 찾은 따뜻한 쉼터',
-    },
+function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0): SceneTheme {
+  // 주제별로 3가지 변형 테마
+  const themeVariants: Record<SceneTopic, SceneTheme[]> = {
+    play: [
+      {
+        before: { bg1: '#2d2d44', bg2: '#1a1a2e', accent: '#9b59b6' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+        beforeTitle: '지친 놀이 시간',
+        afterTitle: '함께하는 즐거운 놀이',
+        beforeScene: '바닥에 흩어진 장난감과 지친 마음',
+        afterScene: '인형과 함께 웃으며 잠든 가족',
+      },
+      {
+        before: { bg1: '#3e2723', bg2: '#4e342e', accent: '#ff7043' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ffb74d' },
+        beforeTitle: '끝없는 놀이 요청',
+        afterTitle: '서로의 세계를 나누는 순간',
+        beforeScene: '몇 번째인지 모를 역할놀이 요청',
+        afterScene: '아이의 상상 속 세계에 초대받은 부모',
+      },
+      {
+        before: { bg1: '#263238', bg2: '#37474f', accent: '#78909c' },
+        after: { bg1: '#e1f5fe', bg2: '#b3e5fc', accent: '#4fc3f7' },
+        beforeTitle: '놀아달라는 마음의 무게',
+        afterTitle: '10분의 마법 같은 시간',
+        beforeScene: '쏟아지는 요구와 지쳐가는 에너지',
+        afterScene: '짧지만 온전히 함께한 따뜻한 시간',
+      },
+    ],
+    yelling: [
+      {
+        before: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#e74c3c' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ff9800' },
+        beforeTitle: '폭풍 속의 후회',
+        afterTitle: '포옹으로 회복하는 아침',
+        beforeScene: '번개와 함께 터진 감정의 소리',
+        afterScene: '사과와 포옹이 피어나는 따뜻한 순간',
+      },
+      {
+        before: { bg1: '#1a1a2e', bg2: '#2d1b2e', accent: '#f44336' },
+        after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ce93d8' },
+        beforeTitle: '돌이킬 수 없는 한마디',
+        afterTitle: '눈물로 이어지는 화해',
+        beforeScene: '입에서 튀어나온 말이 만든 고요',
+        afterScene: '서로의 눈을 보며 다시 시작하는 용기',
+      },
+      {
+        before: { bg1: '#311b00', bg2: '#4a2600', accent: '#ff6f00' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#81c784' },
+        beforeTitle: '감정의 화산이 터진 순간',
+        afterTitle: '다시 잡은 작은 손',
+        beforeScene: '참고 참다 터져버린 뜨거운 감정',
+        afterScene: '아이가 먼저 내민 손을 잡는 순간',
+      },
+    ],
+    tired: [
+      {
+        before: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d' },
+        after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ab47bc' },
+        beforeTitle: '끝없는 피로의 무게',
+        afterTitle: '쉬어도 된다는 허락',
+        beforeScene: '어깨 위 무거운 짐을 진 하루',
+        afterScene: '커피 한 잔과 함께 찾은 여유',
+      },
+      {
+        before: { bg1: '#212121', bg2: '#424242', accent: '#9e9e9e' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffd54f' },
+        beforeTitle: '잠도 쉼도 없는 하루',
+        afterTitle: '작은 쉼표가 만든 큰 변화',
+        beforeScene: '눈 뜨자마자 시작된 끝없는 하루',
+        afterScene: '5분의 조용한 차 한 잔이 선물한 평화',
+      },
+      {
+        before: { bg1: '#1b2631', bg2: '#2c3e50', accent: '#5d6d7e' },
+        after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#4db6ac' },
+        beforeTitle: '텅 빈 배터리의 경고',
+        afterTitle: '충전을 시작한 마음',
+        beforeScene: '0%로 깜빡이는 마음의 배터리',
+        afterScene: '천천히 차오르는 에너지의 초록빛',
+      },
+    ],
+    work: [
+      {
+        before: { bg1: '#1a2e2e', bg2: '#0d1b2a', accent: '#3498db' },
+        after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#26c6da' },
+        beforeTitle: '일과 육아 사이',
+        afterTitle: '퇴근 후 10분의 기적',
+        beforeScene: '갈라진 두 세계 사이에서',
+        afterScene: '따뜻한 불빛이 새어 나오는 집',
+      },
+      {
+        before: { bg1: '#1a237e', bg2: '#0d47a1', accent: '#5c6bc0' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ffb74d' },
+        beforeTitle: '두 역할 사이의 죄책감',
+        afterTitle: '완벽하지 않아도 괜찮은 저녁',
+        beforeScene: '회의실에서 울리는 아이 사진 알림',
+        afterScene: '현관문을 열자 달려오는 작은 발소리',
+      },
+      {
+        before: { bg1: '#263238', bg2: '#37474f', accent: '#607d8b' },
+        after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#f48fb1' },
+        beforeTitle: '야근의 그림자',
+        afterTitle: '잠든 아이 옆에 누운 밤',
+        beforeScene: '모니터 불빛 아래 놓인 가족 사진',
+        afterScene: '아이의 작은 숨소리를 듣는 평화',
+      },
+    ],
+    sleep: [
+      {
+        before: { bg1: '#0d1b2a', bg2: '#1b2838', accent: '#2c3e50' },
+        after: { bg1: '#e8eaf6', bg2: '#c5cae9', accent: '#5c6bc0' },
+        beforeTitle: '잠 못 드는 새벽',
+        afterTitle: '별빛 아래 평화로운 잠',
+        beforeScene: '시계만 째깍거리는 어둠 속',
+        afterScene: '아이와 함께 맞이하는 고요한 밤',
+      },
+      {
+        before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e' },
+        after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ba68c8' },
+        beforeTitle: '새벽 3시의 절망',
+        afterTitle: '아이와 함께 꾸는 꿈',
+        beforeScene: '몇 번째인지 모를 새벽 기상',
+        afterScene: '서로의 온기로 채운 포근한 이불 속',
+      },
+      {
+        before: { bg1: '#0d1117', bg2: '#161b22', accent: '#484f58' },
+        after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#4dd0e1' },
+        beforeTitle: '밤이 두려운 부모',
+        afterTitle: '새벽달이 비추는 고요',
+        beforeScene: '잠든 아이 옆에서 뜬 눈으로 보내는 밤',
+        afterScene: '달빛 아래 평화롭게 잠든 두 사람',
+      },
+    ],
+    food: [
+      {
+        before: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffc107' },
+        beforeTitle: '밥 한 숟갈의 전쟁',
+        afterTitle: '함께 먹는 따뜻한 식탁',
+        beforeScene: '뒤집힌 그릇과 흩어진 음식',
+        afterScene: '스스로 숟가락을 든 작은 손',
+      },
+      {
+        before: { bg1: '#3e2723', bg2: '#4e342e', accent: '#8d6e63' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+        beforeTitle: '안 먹겠다는 작은 입술',
+        afterTitle: '한 입의 작은 승리',
+        beforeScene: '꼭 다문 입과 고개 돌린 아이',
+        afterScene: '엄지를 치켜세우며 한 숟갈 넘기는 순간',
+      },
+      {
+        before: { bg1: '#1a2e1a', bg2: '#2d3e2d', accent: '#795548' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ff9800' },
+        beforeTitle: '식탁 위의 눈물',
+        afterTitle: '같이 만든 오늘의 간식',
+        beforeScene: '바닥에 떨어진 반찬과 지친 한숨',
+        afterScene: '반죽을 주무르며 웃는 두 쌍의 손',
+      },
+    ],
+    screen: [
+      {
+        before: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#5dade2' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#4caf50' },
+        beforeTitle: '스크린 앞의 죄책감',
+        afterTitle: '함께 보는 시간의 가치',
+        beforeScene: '어두운 방, 화면만 빛나는 저녁',
+        afterScene: '나무 아래 책을 읽는 가족',
+      },
+      {
+        before: { bg1: '#212121', bg2: '#303030', accent: '#2196f3' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffd54f' },
+        beforeTitle: '리모컨을 건넨 자책',
+        afterTitle: '화면 속 세상을 나누는 대화',
+        beforeScene: '조용해진 집과 빛나는 화면',
+        afterScene: '같이 보며 이야기하는 따뜻한 시간',
+      },
+      {
+        before: { bg1: '#1a237e', bg2: '#283593', accent: '#7986cb' },
+        after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ab47bc' },
+        beforeTitle: '꺼지지 않는 화면',
+        afterTitle: '대신 켜진 상상력의 불빛',
+        beforeScene: '끄려다 포기한 지쳐버린 저녁',
+        afterScene: '크레용으로 그린 오늘의 모험',
+      },
+    ],
+    fighting: [
+      {
+        before: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad' },
+        after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#ec407a' },
+        beforeTitle: '갈라진 마음의 틈',
+        afterTitle: '다시 잡은 손',
+        beforeScene: '서로 등진 두 사람 사이의 균열',
+        afterScene: '손을 잡고 함께 웃는 가족',
+      },
+      {
+        before: { bg1: '#1b2631', bg2: '#2c3e50', accent: '#e74c3c' },
+        after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#26c6da' },
+        beforeTitle: '차가운 침묵의 밤',
+        afterTitle: '먼저 건넨 따뜻한 한마디',
+        beforeScene: '같은 방에서 다른 곳을 보는 두 사람',
+        afterScene: '"미안해"라는 말이 녹인 얼음',
+      },
+      {
+        before: { bg1: '#311b92', bg2: '#4527a0', accent: '#b39ddb' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#81c784' },
+        beforeTitle: '엇갈린 마음의 소리',
+        afterTitle: '같은 방향을 바라보는 눈',
+        beforeScene: '각자의 정의 사이에서 흔들리는 가족',
+        afterScene: '아이를 위해 하나 된 마음',
+      },
+    ],
+    lonely: [
+      {
+        before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e' },
+        after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#26a69a' },
+        beforeTitle: '혼자 감당하는 무게',
+        afterTitle: '연결된 따뜻한 손길',
+        beforeScene: '텅 빈 방에 홀로 앉은 밤',
+        afterScene: '누군가와 나누는 따뜻한 대화',
+      },
+      {
+        before: { bg1: '#212121', bg2: '#303030', accent: '#616161' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ffb74d' },
+        beforeTitle: '나만 힘든 걸까',
+        afterTitle: '같은 마음을 가진 누군가',
+        beforeScene: '다들 잘하는 것 같은데 나만 허덕이는 기분',
+        afterScene: '"저도 그래요"라는 한마디가 주는 위로',
+      },
+      {
+        before: { bg1: '#0d1b2a', bg2: '#1b2838', accent: '#455a64' },
+        after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ce93d8' },
+        beforeTitle: '고립된 섬 위의 부모',
+        afterTitle: '다리가 놓인 마음',
+        beforeScene: '도움을 요청할 곳 없는 외로운 밤',
+        afterScene: '이해받는다는 느낌이 만든 따뜻한 다리',
+      },
+    ],
+    default: [
+      {
+        before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+        beforeTitle: emotion ? `${emotion}에 잠긴 하루` : '힘겨운 하루의 무게',
+        afterTitle: '마음의 짐을 내려놓는 순간',
+        beforeScene: '어둠 속 홀로 걷는 길',
+        afterScene: '숲에서 찾은 따뜻한 쉼터',
+      },
+      {
+        before: { bg1: '#263238', bg2: '#37474f', accent: '#78909c' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffd54f' },
+        beforeTitle: emotion ? `${emotion}의 안개 속` : '안개 낀 마음의 길',
+        afterTitle: '안개가 걷히는 아침',
+        beforeScene: '앞이 보이지 않는 불안한 발걸음',
+        afterScene: '햇살이 비추며 선명해지는 길',
+      },
+      {
+        before: { bg1: '#1b2631', bg2: '#2c3e50', accent: '#5d6d7e' },
+        after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#f48fb1' },
+        beforeTitle: emotion ? `${emotion}이 찾아온 밤` : '무거운 마음의 밤',
+        afterTitle: '새벽빛이 스미는 창가',
+        beforeScene: '어두운 밤하늘 아래 웅크린 마음',
+        afterScene: '첫 빛이 내리는 희망의 창가',
+      },
+    ],
   };
-  return themes[topic];
+  const variants = themeVariants[topic];
+  return variants[variant % variants.length];
 }
 
 // ===== 공통 캐릭터 — 슬픈/웅크린 =====
@@ -703,7 +894,8 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
   }, []);
 
   const topic = useMemo(() => detectTopic(userContent || ''), [userContent]);
-  const theme = useMemo(() => getSceneTheme(topic, emotion), [topic, emotion]);
+  const variant = useMemo(() => getVariant(userContent || '' + (aiContent || ''), 3), [userContent, aiContent]);
+  const theme = useMemo(() => getSceneTheme(topic, emotion, variant), [topic, emotion, variant]);
 
   const killingMessage = useMemo(() => {
     const ai = aiContent || '';
@@ -733,10 +925,34 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                 </linearGradient>
               </defs>
               <rect width="400" height="520" fill="url(#bgBefore)" />
-              <circle cx="320" cy="70" r="28" fill="#555" opacity="0.14">
-                <animate attributeName="opacity" values="0.14;0.22;0.14" dur="4s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="324" cy="65" r="22" fill="url(#bgBefore)" />
+              {/* 변형별 배경 장식 */}
+              {variant === 0 && (<>
+                <circle cx="320" cy="70" r="28" fill="#555" opacity="0.14">
+                  <animate attributeName="opacity" values="0.14;0.22;0.14" dur="4s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="324" cy="65" r="22" fill="url(#bgBefore)" />
+              </>)}
+              {variant === 1 && (<>
+                {/* 별이 빛나는 밤 */}
+                {[{x:80,y:50},{x:150,y:90},{x:320,y:45},{x:350,y:110},{x:60,y:130},{x:250,y:70}].map((s,i) => (
+                  <circle key={`bs-${i}`} cx={s.x} cy={s.y} r={1.5+i%2} fill="#fff" opacity={0.15+i*0.03}>
+                    <animate attributeName="opacity" values={`${0.15+i*0.03};0.05;${0.15+i*0.03}`} dur={`${2+i*0.5}s`} repeatCount="indefinite" />
+                  </circle>
+                ))}
+                <circle cx="330" cy="60" r="20" fill="#555" opacity="0.12" />
+                <circle cx="334" cy="55" r="16" fill="url(#bgBefore)" />
+              </>)}
+              {variant === 2 && (<>
+                {/* 비 내리는 배경 */}
+                {[50,120,190,260,330].map((x,i) => (
+                  <line key={`br-${i}`} x1={x} y1={60+i*8} x2={x-3} y2={78+i*8} stroke={theme.before.accent} strokeWidth="1" opacity="0.2">
+                    <animate attributeName="y1" values={`${60+i*8};${340};${60+i*8}`} dur={`${1.5+i*0.2}s`} repeatCount="indefinite" />
+                    <animate attributeName="y2" values={`${78+i*8};${358};${78+i*8}`} dur={`${1.5+i*0.2}s`} repeatCount="indefinite" />
+                  </line>
+                ))}
+                <ellipse cx="140" cy="55" rx="50" ry="20" fill="#333" opacity="0.25" />
+                <ellipse cx="280" cy="70" rx="45" ry="18" fill="#333" opacity="0.2" />
+              </>)}
               <BeforeSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
               <text x="200" y="428" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 전</text>
@@ -764,20 +980,52 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                 </radialGradient>
               </defs>
               <rect width="400" height="520" fill="url(#bgAfter)" />
-              <circle cx="320" cy="70" r="50" fill="url(#sunRay)">
-                <animate attributeName="r" values="50;60;50" dur="4s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="320" cy="70" r="24" fill="#fff9c4" opacity="0.6">
-                <animate attributeName="r" values="24;27;24" dur="2.5s" repeatCount="indefinite" />
-              </circle>
-              <g opacity="0.65">
-                <ellipse cx="90" cy="85" rx="35" ry="16" fill="white">
-                  <animate attributeName="cx" values="90;108;90" dur="8s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="118" cy="77" rx="25" ry="12" fill="white">
-                  <animate attributeName="cx" values="118;136;118" dur="9s" repeatCount="indefinite" />
-                </ellipse>
-              </g>
+              {/* 변형별 하늘 장식 */}
+              {variant === 0 && (<>
+                <circle cx="320" cy="70" r="50" fill="url(#sunRay)">
+                  <animate attributeName="r" values="50;60;50" dur="4s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="320" cy="70" r="24" fill="#fff9c4" opacity="0.6">
+                  <animate attributeName="r" values="24;27;24" dur="2.5s" repeatCount="indefinite" />
+                </circle>
+                <g opacity="0.65">
+                  <ellipse cx="90" cy="85" rx="35" ry="16" fill="white">
+                    <animate attributeName="cx" values="90;108;90" dur="8s" repeatCount="indefinite" />
+                  </ellipse>
+                  <ellipse cx="118" cy="77" rx="25" ry="12" fill="white">
+                    <animate attributeName="cx" values="118;136;118" dur="9s" repeatCount="indefinite" />
+                  </ellipse>
+                </g>
+              </>)}
+              {variant === 1 && (<>
+                {/* 무지개 아치 + 나비 */}
+                {['#ef5350','#ff9800','#ffeb3b','#66bb6a','#42a5f5','#ab47bc'].map((c,i) => (
+                  <path key={`rb-${i}`} d={`M30,${155+i*4} Q200,${40+i*3} 370,${155+i*4}`} fill="none" stroke={c} strokeWidth="3" opacity="0.12" />
+                ))}
+                <g transform="translate(310,85)" opacity="0.5">
+                  <path d="M0,0 C-8,-12 -18,-8 -10,0 C-18,8 -8,12 0,0" fill={theme.after.accent} />
+                  <path d="M0,0 C8,-12 18,-8 10,0 C18,8 8,12 0,0" fill={theme.after.accent} opacity="0.7" />
+                  <animateTransform attributeName="transform" type="translate" values="310,85;315,80;310,85" dur="3s" repeatCount="indefinite" />
+                </g>
+                <g transform="translate(90,100)" opacity="0.35">
+                  <path d="M0,0 C-6,-9 -14,-6 -7,0 C-14,6 -6,9 0,0" fill="#ffb74d" />
+                  <path d="M0,0 C6,-9 14,-6 7,0 C14,6 6,9 0,0" fill="#ffb74d" opacity="0.7" />
+                  <animateTransform attributeName="transform" type="translate" values="90,100;95,95;90,100" dur="4s" repeatCount="indefinite" />
+                </g>
+              </>)}
+              {variant === 2 && (<>
+                {/* 석양 느낌 + 새 */}
+                <circle cx="200" cy="60" r="40" fill="#fff9c4" opacity="0.4">
+                  <animate attributeName="r" values="40;48;40" dur="5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="200" cy="60" r="65" fill="#fff9c4" opacity="0.1" />
+                {/* 새 무리 */}
+                {[{x:100,y:80},{x:130,y:65},{x:160,y:75},{x:280,y:90},{x:310,y:78}].map((b,i) => (
+                  <path key={`bd-${i}`} d={`M${b.x},${b.y} Q${b.x-5},${b.y-5} ${b.x-10},${b.y} M${b.x},${b.y} Q${b.x+5},${b.y-5} ${b.x+10},${b.y}`} stroke="#666" strokeWidth="1.2" fill="none" opacity="0.25">
+                    <animate attributeName="opacity" values="0.25;0.15;0.25" dur={`${3+i*0.3}s`} repeatCount="indefinite" />
+                  </path>
+                ))}
+              </>)}
               <AfterSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />
               <text x="200" y="428" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 후</text>
