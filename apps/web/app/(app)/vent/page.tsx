@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
-import type { EmotionTag } from '../../../../../shared/types/reflection';
+import type { EmotionTag, CounselingStyle } from '../../../../../shared/types/reflection';
 import VoiceInput from './components/VoiceInput';
 import AiMessageBubble from '@/components/AiMessageBubble';
 import CounselingResultCards from '@/components/CounselingResultCards';
@@ -19,10 +19,17 @@ const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'loneliness', label: '외로움', emoji: '😞' },
 ];
 
+const COUNSELING_STYLES: { value: CounselingStyle; label: string; emoji: string; description: string }[] = [
+  { value: 'nurturing', label: '다독이는', emoji: '🤗', description: '따뜻하고 부드러운 위로' },
+  { value: 'humorous', label: '유머러스', emoji: '😄', description: '가볍고 유쾌한 상담' },
+  { value: 'direct', label: '명확한 T', emoji: '🧠', description: '논리적이고 팩트 중심' },
+];
+
 export default function VentPage() {
   const router = useRouter();
   const [step, setStep] = useState<'emotion' | 'write' | 'processing'>('emotion');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<CounselingStyle>('nurturing');
   const [content, setContent] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,6 +51,7 @@ export default function VentPage() {
       const result = await reflectionApi.create({
         content: content.trim(),
         emotionTag: selectedEmotion || undefined,
+        counselingStyle: selectedStyle,
       });
 
       setReflectionId(result.reflection.id);
@@ -65,6 +73,7 @@ export default function VentPage() {
   const handleNewReflection = () => {
     setStep('emotion');
     setSelectedEmotion(null);
+    setSelectedStyle('nurturing');
     setContent('');
     setAiResponse('');
     setReflectionId(null);
@@ -126,6 +135,24 @@ export default function VentPage() {
             <p className="text-gray-600">
               힘들었던 일, 자책했던 순간을 자유롭게 털어놓으세요
             </p>
+          </div>
+
+          {/* 상담 스타일 선택 */}
+          <div className="flex justify-center gap-3">
+            {COUNSELING_STYLES.map((style) => (
+              <button
+                key={style.value}
+                onClick={() => setSelectedStyle(style.value)}
+                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all border-2 ${
+                  selectedStyle === style.value
+                    ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-1.5">{style.emoji}</span>
+                {style.label}
+              </button>
+            ))}
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">

@@ -4,7 +4,9 @@ import {
   COGNITIVE_REFRAMING_SYSTEM_PROMPT,
   FOLLOW_UP_CONVERSATION_CONTEXT,
   getEmotionSpecificPrompt,
+  getCounselingStylePrompt,
   EmotionTag,
+  CounselingStyle,
 } from './prompts';
 
 const anthropic = new Anthropic({
@@ -43,7 +45,8 @@ export class ClaudeClient {
     messages: Message[],
     emotion?: EmotionTag,
     onChunk?: (text: string) => void,
-    pastContext?: string
+    pastContext?: string,
+    counselingStyle?: CounselingStyle
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
 
@@ -51,6 +54,7 @@ export class ClaudeClient {
       COGNITIVE_REFRAMING_SYSTEM_PROMPT +
       (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
       (emotion ? getEmotionSpecificPrompt(emotion) : '') +
+      getCounselingStylePrompt(counselingStyle) +
       (pastContext || '');
 
     let fullText = '';
@@ -97,7 +101,8 @@ export class ClaudeClient {
   async getReframingResponse(
     messages: Message[],
     emotion?: EmotionTag,
-    pastContext?: string
+    pastContext?: string,
+    counselingStyle?: CounselingStyle
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
 
@@ -105,6 +110,7 @@ export class ClaudeClient {
       COGNITIVE_REFRAMING_SYSTEM_PROMPT +
       (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
       (emotion ? getEmotionSpecificPrompt(emotion) : '') +
+      getCounselingStylePrompt(counselingStyle) +
       (pastContext || '');
 
     const response = await anthropic.messages.create({

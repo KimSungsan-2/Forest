@@ -7,7 +7,7 @@ import {
   ConversationResponse,
   ReflectionListQuery,
 } from './reflection.types';
-import { EmotionTag } from './ai/prompts';
+import { EmotionTag, CounselingStyle } from './ai/prompts';
 import { buildPastContextPrompt } from './ai/contextRetriever';
 
 export class ReflectionService {
@@ -28,7 +28,9 @@ export class ReflectionService {
       // AI 응답 생성
       const aiResponseData = await claudeClient.getReframingResponse(
         [{ role: 'user', content: data.content }],
-        data.emotionTag as EmotionTag
+        data.emotionTag as EmotionTag,
+        undefined,
+        data.counselingStyle as CounselingStyle
       );
 
       return {
@@ -92,7 +94,8 @@ export class ReflectionService {
     const aiResponseData = await claudeClient.getReframingResponse(
       [{ role: 'user', content: data.content }],
       data.emotionTag as EmotionTag,
-      pastContext
+      pastContext,
+      data.counselingStyle as CounselingStyle
     );
 
     // AI 응답 저장
@@ -171,7 +174,8 @@ export class ReflectionService {
     const aiResponseData = await claudeClient.getReframingResponse(
       messages,
       reflection.emotionalTone as EmotionTag,
-      pastContext
+      pastContext,
+      data.counselingStyle as CounselingStyle
     );
 
     // AI 응답 저장

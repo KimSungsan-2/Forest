@@ -8,6 +8,8 @@ export type EmotionTag =
   | 'overwhelm'
   | 'loneliness';
 
+export type CounselingStyle = 'humorous' | 'nurturing' | 'direct';
+
 export interface Reflection {
   id: string;
   userId: string;
@@ -36,11 +38,13 @@ export interface CreateReflectionRequest {
   title?: string;
   content: string;
   emotionTag?: EmotionTag;
+  counselingStyle?: CounselingStyle;
 }
 
 export interface SendMessageRequest {
   reflectionId: string;
   content: string;
+  counselingStyle?: CounselingStyle;
 }
 
 export interface ReflectionListResponse {

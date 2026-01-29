@@ -10,6 +10,9 @@ export const createReflectionSchema = z.object({
   emotionTag: z
     .enum(['guilt', 'anger', 'exhaustion', 'anxiety', 'sadness', 'frustration', 'overwhelm', 'loneliness'])
     .optional(),
+  counselingStyle: z
+    .enum(['humorous', 'nurturing', 'direct'])
+    .optional(),
 });
 
 /**
@@ -18,6 +21,9 @@ export const createReflectionSchema = z.object({
 export const sendMessageSchema = z.object({
   reflectionId: z.string().uuid(),
   content: z.string().min(1).max(5000),
+  counselingStyle: z
+    .enum(['humorous', 'nurturing', 'direct'])
+    .optional(),
 });
 
 export type CreateReflectionInput = z.infer<typeof createReflectionSchema>;

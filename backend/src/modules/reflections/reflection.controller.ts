@@ -9,7 +9,7 @@ import {
 } from './reflection.types';
 import { getAuthUser } from '../../middleware/auth';
 import { prisma } from '../../config/database';
-import { EmotionTag } from './ai/prompts';
+import { EmotionTag, CounselingStyle } from './ai/prompts';
 import { buildPastContextPrompt } from './ai/contextRetriever';
 
 export class ReflectionController {
@@ -212,7 +212,8 @@ export class ReflectionController {
           // SSE 형식으로 청크 전송
           reply.raw.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
         },
-        pastContext
+        pastContext,
+        body.counselingStyle as CounselingStyle
       );
 
       // 완료 이벤트
