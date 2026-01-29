@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag, CounselingStyle } from '../../../../../shared/types/reflection';
@@ -25,15 +25,63 @@ const COUNSELING_STYLES: { value: CounselingStyle; label: string; emoji: string;
   { value: 'direct', label: '명확한 T', emoji: '🧠', description: '논리적이고 팩트 중심' },
 ];
 
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+interface InteractiveElement {
+  type: 'choice' | 'input';
+  options?: string[];
+  placeholder?: string;
+}
+
+function parseInteractiveElements(text: string): {
+  cleanText: string;
+  elements: InteractiveElement[];
+} {
+  const elements: InteractiveElement[] = [];
+  let cleanText = text;
+
+  // Parse [CHOICE: "opt1" | "opt2" | "opt3"]
+  const choiceRegex = /\[CHOICE:\s*(.+?)\]/g;
+  let match;
+  while ((match = choiceRegex.exec(text)) !== null) {
+    const optionsStr = match[1];
+    const options = optionsStr
+      .split('|')
+      .map((opt) => opt.trim().replace(/^["""](.+?)["""]$/, '$1'));
+    elements.push({ type: 'choice', options });
+    cleanText = cleanText.replace(match[0], '');
+  }
+
+  // Parse [INPUT: "placeholder"]
+  const inputRegex = /\[INPUT:\s*["""](.+?)["""]\]/g;
+  while ((match = inputRegex.exec(text)) !== null) {
+    elements.push({ type: 'input', placeholder: match[1] });
+    cleanText = cleanText.replace(match[0], '');
+  }
+
+  return { cleanText: cleanText.trim(), elements };
+}
+
 export default function VentPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'emotion' | 'write' | 'processing'>('emotion');
+  const [step, setStep] = useState<'emotion' | 'write' | 'chatting'>('emotion');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<CounselingStyle>('nurturing');
   const [content, setContent] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatInput, setChatInput] = useState('');
   const [reflectionId, setReflectionId] = useState<string | null>(null);
+  const [isCounselingComplete, setIsCounselingComplete] = useState(false);
+  const [finalAiResponse, setFinalAiResponse] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, chatLoading]);
 
   const handleEmotionSelect = (emotion: EmotionTag) => {
     setSelectedEmotion(emotion);
@@ -43,9 +91,9 @@ export default function VentPage() {
   const handleSubmit = async () => {
     if (!content.trim()) return;
 
-    setLoading(true);
-    setStep('processing');
-    setAiResponse('');
+    setChatLoading(true);
+    setStep('chatting');
+    setMessages([{ role: 'user', content: content.trim() }]);
 
     try {
       const result = await reflectionApi.create({
@@ -55,12 +103,50 @@ export default function VentPage() {
       });
 
       setReflectionId(result.reflection.id);
-      setAiResponse(result.aiResponse.content);
+      const aiContent = result.aiResponse.content;
+      const { elements } = parseInteractiveElements(aiContent);
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: aiContent }]);
+
+      if (elements.length === 0) {
+        setIsCounselingComplete(true);
+        setFinalAiResponse(aiContent);
+      }
     } catch (error: any) {
-      alert(error.message || '회고 생성에 실패했습니다');
+      alert(error.message || '상담 시작에 실패했습니다');
       setStep('write');
     } finally {
-      setLoading(false);
+      setChatLoading(false);
+    }
+  };
+
+  const handleChatResponse = async (response: string) => {
+    if (!response.trim() || !reflectionId || chatLoading) return;
+
+    setChatLoading(true);
+    setChatInput('');
+    setMessages((prev) => [...prev, { role: 'user', content: response }]);
+
+    try {
+      const aiResponse = await reflectionApi.sendMessage({
+        reflectionId,
+        content: response,
+        counselingStyle: selectedStyle,
+      });
+
+      const aiContent = aiResponse.content;
+      const { elements } = parseInteractiveElements(aiContent);
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: aiContent }]);
+
+      if (elements.length === 0) {
+        setIsCounselingComplete(true);
+        setFinalAiResponse(aiContent);
+      }
+    } catch (error: any) {
+      alert(error.message || '메시지 전송에 실패했습니다');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -75,9 +161,29 @@ export default function VentPage() {
     setSelectedEmotion(null);
     setSelectedStyle('nurturing');
     setContent('');
-    setAiResponse('');
+    setMessages([]);
     setReflectionId(null);
+    setIsCounselingComplete(false);
+    setFinalAiResponse('');
+    setChatInput('');
   };
+
+  // Get interactive elements from the latest AI message
+  const latestInteractive = useMemo(() => {
+    if (isCounselingComplete || chatLoading) return null;
+    const lastAiMsg = [...messages].reverse().find((m) => m.role === 'assistant');
+    if (!lastAiMsg) return null;
+    const { elements } = parseInteractiveElements(lastAiMsg.content);
+    return elements.length > 0 ? elements : null;
+  }, [messages, isCounselingComplete, chatLoading]);
+
+  // Collect all user content for the counseling cards
+  const allUserContent = useMemo(() => {
+    return messages
+      .filter((m) => m.role === 'user')
+      .map((m) => m.content)
+      .join('\n');
+  }, [messages]);
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
@@ -178,7 +284,7 @@ export default function VentPage() {
               </div>
               <VoiceInput
                 onTranscriptChange={(text) => setContent((prev) => prev + ' ' + text)}
-                disabled={loading}
+                disabled={chatLoading}
               />
             </div>
           </div>
@@ -192,7 +298,7 @@ export default function VentPage() {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!content.trim() || loading}
+              disabled={!content.trim() || chatLoading}
               className="flex-[2] bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3.5 sm:py-4 rounded-lg transition-colors text-sm sm:text-base"
             >
               상담 시작하기
@@ -201,50 +307,47 @@ export default function VentPage() {
         </div>
       )}
 
-      {/* Step 3: AI 응답 */}
-      {step === 'processing' && (
-        <div className="space-y-5 sm:space-y-8">
-          {/* 헤더 영역 */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-lg mb-1">
-              <span className="text-2xl sm:text-3xl">🌲</span>
+      {/* Step 3: 대화형 상담 */}
+      {step === 'chatting' && (
+        <div className="space-y-4">
+          {/* 헤더 */}
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-lg">
+              <span className="text-xl sm:text-2xl">🌲</span>
             </div>
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-              {loading ? '숲이 당신의 이야기를 듣고 있어요' : '숲이 전하는 이야기'}
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">
+              숲의 상담사
             </h1>
-            <p className="text-gray-500 text-xs sm:text-sm">
-              {loading ? '따뜻한 마음으로 읽고 있어요...' : '당신을 위한 따뜻한 메시지입니다'}
-            </p>
+            {!isCounselingComplete && (
+              <p className="text-xs sm:text-sm text-gray-500">
+                더 잘 도와드리기 위해 몇 가지 여쭤볼게요
+              </p>
+            )}
           </div>
 
-          {/* 구분선 */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
-            <span className="text-green-300 text-xs">🌿</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
-          </div>
-
-          {/* 사용자 메시지 */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200/60 shadow-sm">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100/30 rounded-full translate-x-4 -translate-y-4" />
-            <div className="relative flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm sm:text-base font-bold shadow-md">
-                  나
-                </div>
+          {/* 대화 메시지들 */}
+          <div className="space-y-3 sm:space-y-4">
+            {messages.map((msg, idx) => (
+              <div key={idx}>
+                {msg.role === 'user' ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[85%] bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl rounded-tr-sm p-3 sm:p-4 shadow-sm">
+                      <p className="text-sm sm:text-[15px] text-gray-800 whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <AiMessageBubble
+                    content={parseInteractiveElements(msg.content).cleanText}
+                    showAvatar={true}
+                  />
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] sm:text-xs font-semibold text-blue-600 bg-blue-100/80 px-2 py-0.5 rounded-full">
-                  나의 이야기
-                </span>
-                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed sm:leading-7 mt-2 text-sm sm:text-[15px] break-words">{content}</p>
-              </div>
-            </div>
-          </div>
+            ))}
 
-          {/* AI 응답 */}
-          <div className="min-h-[150px] sm:min-h-[200px]">
-            {loading ? (
+            {/* 로딩 표시 */}
+            {chatLoading && (
               <div className="relative overflow-hidden rounded-xl sm:rounded-2xl shadow-md">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50" />
                 <div className="relative h-1 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400" />
@@ -259,42 +362,98 @@ export default function VentPage() {
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.15s]" />
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.3s]" />
                       </div>
-                      <span className="text-xs sm:text-sm text-green-600 font-medium">당신의 이야기를 듣고 있어요...</span>
+                      <span className="text-xs sm:text-sm text-green-600 font-medium">
+                        {isCounselingComplete ? '상담을 준비하고 있어요...' : '당신의 이야기를 듣고 있어요...'}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <AiMessageBubble content={aiResponse} />
             )}
+
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* 상담 전/후 애니메이션 카드 */}
-          {!loading && aiResponse && (
-            <CounselingResultCards
-              emotion={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.label : undefined}
-              emotionEmoji={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.emoji : undefined}
-              userContent={content}
-              aiContent={aiResponse}
-            />
+          {/* 인터랙티브 응답 영역 */}
+          {!chatLoading && latestInteractive && (
+            <div className="space-y-3 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-xl p-3 sm:p-4 border border-green-200/60 shadow-sm">
+              <p className="text-xs sm:text-sm text-green-700 font-medium">
+                답변을 선택하거나 입력해주세요
+              </p>
+              {latestInteractive.map((el, idx) => (
+                <div key={idx} className="space-y-2">
+                  {el.type === 'choice' && el.options && (
+                    <div className="flex flex-wrap gap-2">
+                      {el.options.map((opt, optIdx) => (
+                        <button
+                          key={optIdx}
+                          onClick={() => handleChatResponse(opt)}
+                          className="bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 text-gray-800 text-sm sm:text-base font-medium px-4 py-2.5 rounded-full transition-all active:scale-95 shadow-sm"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {el.type === 'input' && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleChatResponse(chatInput)}
+                        placeholder={el.placeholder || '답변을 입력하세요...'}
+                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm sm:text-base bg-white"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleChatResponse(chatInput)}
+                        disabled={!chatInput.trim()}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-4 py-2.5 rounded-full font-medium text-sm transition-colors"
+                      >
+                        전송
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
-          {/* 액션 버튼 */}
-          {!loading && aiResponse && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleNewReflection}
-                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3.5 sm:py-4 rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow text-sm sm:text-base"
-              >
-                새로운 상담
-              </button>
-              <button
-                onClick={handleContinueConversation}
-                className="flex-[2] bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3.5 sm:py-4 rounded-xl transition-all shadow-md hover:shadow-lg text-sm sm:text-base"
-              >
-                대화 계속하기 →
-              </button>
-            </div>
+          {/* 상담 완료 시 결과 표시 */}
+          {isCounselingComplete && !chatLoading && (
+            <>
+              {/* 구분선 */}
+              <div className="flex items-center gap-3 py-2">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
+                <span className="text-green-300 text-xs">🌿</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
+              </div>
+
+              {/* 상담 결과 카드 */}
+              <CounselingResultCards
+                emotion={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.label : undefined}
+                emotionEmoji={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.emoji : undefined}
+                userContent={allUserContent}
+                aiContent={finalAiResponse}
+              />
+
+              {/* 액션 버튼 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleNewReflection}
+                  className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3.5 sm:py-4 rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow text-sm sm:text-base"
+                >
+                  새로운 상담
+                </button>
+                <button
+                  onClick={handleContinueConversation}
+                  className="flex-[2] bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3.5 sm:py-4 rounded-xl transition-all shadow-md hover:shadow-lg text-sm sm:text-base"
+                >
+                  대화 계속하기 →
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}

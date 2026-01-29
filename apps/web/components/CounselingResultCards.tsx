@@ -43,122 +43,650 @@ function renderCardToCanvas(
   });
 }
 
-// 감정별 색상 테마
-function getEmotionTheme(emotion?: string) {
-  const themes: Record<string, {
-    bg1: string; bg2: string; accent: string; rain: string; label: string;
-    afterBg1: string; afterBg2: string; afterAccent: string;
-    sceneEmoji: string; healEmoji: string;
-  }> = {
-    죄책감: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6', rain: '#5a7ea6', label: '무거운 마음',
-      afterBg1: '#e8f5e9', afterBg2: '#c8e6c9', afterAccent: '#66bb6a', sceneEmoji: '😔', healEmoji: '🌱' },
-    분노: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#c0392b', rain: '#e74c3c', label: '타오르는 감정',
-      afterBg1: '#fff3e0', afterBg2: '#ffe0b2', afterAccent: '#ff9800', sceneEmoji: '🔥', healEmoji: '🕊️' },
-    피로: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d', rain: '#95a5a6', label: '지친 하루',
-      afterBg1: '#f3e5f5', afterBg2: '#e1bee7', afterAccent: '#ab47bc', sceneEmoji: '😩', healEmoji: '☕' },
-    불안: { bg1: '#1a2e2e', bg2: '#163e3e', accent: '#1abc9c', rain: '#48c9b0', label: '불안한 마음',
-      afterBg1: '#e0f7fa', afterBg2: '#b2ebf2', afterAccent: '#26c6da', sceneEmoji: '🌊', healEmoji: '🌤️' },
-    슬픔: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#3498db', rain: '#5dade2', label: '흐린 마음',
-      afterBg1: '#e8eaf6', afterBg2: '#c5cae9', afterAccent: '#5c6bc0', sceneEmoji: '🌧️', healEmoji: '🌈' },
-    좌절: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017', rain: '#f1c40f', label: '막막한 순간',
-      afterBg1: '#fff8e1', afterBg2: '#ffecb3', afterAccent: '#ffc107', sceneEmoji: '🧱', healEmoji: '🌻' },
-    압도됨: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad', rain: '#a569bd', label: '벅찬 감정',
-      afterBg1: '#fce4ec', afterBg2: '#f8bbd0', afterAccent: '#ec407a', sceneEmoji: '🌀', healEmoji: '🦋' },
-    외로움: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e', rain: '#5d6d7e', label: '혼자인 기분',
-      afterBg1: '#e0f2f1', afterBg2: '#b2dfdb', afterAccent: '#26a69a', sceneEmoji: '🌙', healEmoji: '🤝' },
-  };
-  return themes[emotion || ''] || themes['죄책감'];
+// ===== 주제 감지 =====
+type SceneTopic = 'play' | 'yelling' | 'tired' | 'work' | 'sleep' | 'food' | 'screen' | 'fighting' | 'lonely' | 'default';
+
+function detectTopic(content: string): SceneTopic {
+  if (content.match(/놀[이아]|역할|인형|장난감|블록|소꿉|레고|그리기|만들기/)) return 'play';
+  if (content.match(/소리|화[를을]?\s*[냈내]|짜증|폭발|버럭|소리지/)) return 'yelling';
+  if (content.match(/피곤|지[쳐치]|힘[들든]|번아웃|탈진|기력/)) return 'tired';
+  if (content.match(/일|직장|회사|출근|퇴근|워킹|업무|야근/)) return 'work';
+  if (content.match(/잠|수면|밤|깨[서]?|안\s*자|새벽|불면/)) return 'sleep';
+  if (content.match(/밥|안\s*먹|편식|식사|먹[지이]|수유|분유|이유식/)) return 'food';
+  if (content.match(/TV|영상|유튜브|스크린|핸드폰|스마트폰|태블릿|미디어/)) return 'screen';
+  if (content.match(/싸[우움]|다[퉈투]|갈등|남편|아내|배우자|부부/)) return 'fighting';
+  if (content.match(/혼자|외[롭로]|고립|도움|나눌\s*사람/)) return 'lonely';
+  return 'default';
 }
 
-// 사용자 내용에서 스토리 요약 추출
-function extractStory(userContent?: string, aiContent?: string, emotion?: string) {
-  const content = userContent || '';
-  const ai = aiContent || '';
+// ===== 주제별 색상 & 텍스트 =====
+interface SceneTheme {
+  before: { bg1: string; bg2: string; accent: string };
+  after: { bg1: string; bg2: string; accent: string };
+  beforeTitle: string;
+  afterTitle: string;
+  beforeScene: string;
+  afterScene: string;
+}
 
-  // 사용자 내용에서 핵심 키워드 추출
-  const keywords = {
-    child: content.match(/아이|아들|딸|애|우리\s*애/) ? true : false,
-    yelling: content.match(/소리|화[를을]?\s*[냈내]|짜증|폭발/) ? true : false,
-    tired: content.match(/피곤|지[쳐치]|힘[들든]|지침|번아웃/) ? true : false,
-    guilt: content.match(/죄책|미안|잘못|후회|자책/) ? true : false,
-    work: content.match(/일|직장|회사|출근|퇴근|워킹/) ? true : false,
-    sleep: content.match(/잠|수면|밤|깨[서]?|안\s*자/) ? true : false,
-    food: content.match(/밥|안\s*먹|편식|식사/) ? true : false,
-    screen: content.match(/TV|영상|유튜브|스크린|핸드폰|스마트폰/) ? true : false,
-    fighting: content.match(/싸[우움]|다[퉈투]|갈등|남편|아내|배우자/) ? true : false,
-    lonely: content.match(/혼자|외[롭로]|고립/) ? true : false,
+function getSceneTheme(topic: SceneTopic, emotion?: string): SceneTheme {
+  const themes: Record<SceneTopic, SceneTheme> = {
+    play: {
+      before: { bg1: '#2d2d44', bg2: '#1a1a2e', accent: '#9b59b6' },
+      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+      beforeTitle: '지친 놀이 시간',
+      afterTitle: '함께하는 즐거운 놀이',
+      beforeScene: '바닥에 흩어진 장난감과 지친 마음',
+      afterScene: '인형과 함께 웃으며 잠든 가족',
+    },
+    yelling: {
+      before: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#e74c3c' },
+      after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ff9800' },
+      beforeTitle: '폭풍 속의 후회',
+      afterTitle: '포옹으로 회복하는 아침',
+      beforeScene: '번개와 함께 터진 감정의 소리',
+      afterScene: '사과와 포옹이 피어나는 따뜻한 순간',
+    },
+    tired: {
+      before: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d' },
+      after: { bg1: '#f3e5f5', bg2: '#e1bee7', accent: '#ab47bc' },
+      beforeTitle: '끝없는 피로의 무게',
+      afterTitle: '쉬어도 된다는 허락',
+      beforeScene: '어깨 위 무거운 짐을 진 하루',
+      afterScene: '커피 한 잔과 함께 찾은 여유',
+    },
+    work: {
+      before: { bg1: '#1a2e2e', bg2: '#0d1b2a', accent: '#3498db' },
+      after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#26c6da' },
+      beforeTitle: '일과 육아 사이',
+      afterTitle: '퇴근 후 10분의 기적',
+      beforeScene: '갈라진 두 세계 사이에서',
+      afterScene: '따뜻한 불빛이 새어 나오는 집',
+    },
+    sleep: {
+      before: { bg1: '#0d1b2a', bg2: '#1b2838', accent: '#2c3e50' },
+      after: { bg1: '#e8eaf6', bg2: '#c5cae9', accent: '#5c6bc0' },
+      beforeTitle: '잠 못 드는 새벽',
+      afterTitle: '별빛 아래 평화로운 잠',
+      beforeScene: '시계만 째깍거리는 어둠 속',
+      afterScene: '아이와 함께 맞이하는 고요한 밤',
+    },
+    food: {
+      before: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017' },
+      after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffc107' },
+      beforeTitle: '밥 한 숟갈의 전쟁',
+      afterTitle: '함께 먹는 따뜻한 식탁',
+      beforeScene: '뒤집힌 그릇과 흩어진 음식',
+      afterScene: '스스로 숟가락을 든 작은 손',
+    },
+    screen: {
+      before: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#5dade2' },
+      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#4caf50' },
+      beforeTitle: '스크린 앞의 죄책감',
+      afterTitle: '함께 보는 시간의 가치',
+      beforeScene: '어두운 방, 화면만 빛나는 저녁',
+      afterScene: '나무 아래 책을 읽는 가족',
+    },
+    fighting: {
+      before: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad' },
+      after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#ec407a' },
+      beforeTitle: '갈라진 마음의 틈',
+      afterTitle: '다시 잡은 손',
+      beforeScene: '서로 등진 두 사람 사이의 균열',
+      afterScene: '손을 잡고 함께 웃는 가족',
+    },
+    lonely: {
+      before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e' },
+      after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#26a69a' },
+      beforeTitle: '혼자 감당하는 무게',
+      afterTitle: '연결된 따뜻한 손길',
+      beforeScene: '텅 빈 방에 홀로 앉은 밤',
+      afterScene: '누군가와 나누는 따뜻한 대화',
+    },
+    default: {
+      before: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6' },
+      after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+      beforeTitle: emotion ? `${emotion}에 잠긴 하루` : '힘겨운 하루의 무게',
+      afterTitle: '마음의 짐을 내려놓는 순간',
+      beforeScene: '어둠 속 홀로 걷는 길',
+      afterScene: '숲에서 찾은 따뜻한 쉼터',
+    },
   };
+  return themes[topic];
+}
 
-  // AI 킬링 문장 추출
-  const killingMatch = ai.match(/==([^=]+)==/);
-  const killingMessage = killingMatch ? killingMatch[1].trim() : '당신은 이미 충분히 좋은 부모입니다';
+// ===== 공통 캐릭터 — 슬픈/웅크린 =====
+function SadCharacter({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x}, ${y}) scale(${scale})`}>
+      <ellipse cx="0" cy="85" rx="42" ry="7" fill="#000" opacity="0.1" />
+      <ellipse cx="0" cy="40" rx="40" ry="38" fill="#e0cdb0" />
+      <circle cx="0" cy="-10" r="33" fill="#f0dcc5" />
+      <path d="M-23,-30 Q-10,-44 0,-38 Q10,-44 23,-30" stroke="#8b7355" strokeWidth="5" fill="none" />
+      <path d="M-13,-13 Q-7,-9 -1,-13" stroke="#666" strokeWidth="2.5" fill="none" />
+      <path d="M1,-13 Q7,-9 13,-13" stroke="#666" strokeWidth="2.5" fill="none" />
+      <path d="M-7,2 Q0,6 7,2" stroke="#888" strokeWidth="2" fill="none" />
+      <path d="M-35,10 Q-42,38 -12,50" stroke="#e0cdb0" strokeWidth="12" fill="none" strokeLinecap="round" />
+      <path d="M35,10 Q42,38 12,50" stroke="#e0cdb0" strokeWidth="12" fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
 
-  // 상담 전 스토리 생성
-  let beforeStory = '';
-  let afterStory = '';
-  let beforeScene = '폭풍우 속 혼자 서 있는 밤';
-  let afterScene = '따뜻한 햇살이 비추는 숲';
+// ===== 공통 캐릭터 — 밝은/서 있는 =====
+function HappyCharacter({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x}, ${y}) scale(${scale})`}>
+      <ellipse cx="0" cy="90" rx="40" ry="7" fill="#388e3c" opacity="0.07" />
+      <ellipse cx="0" cy="40" rx="40" ry="40" fill="#f5e6d3" />
+      <circle cx="0" cy="-10" r="33" fill="#f5e6d3" />
+      <path d="M-23,-30 Q-10,-46 0,-40 Q10,-46 23,-30" stroke="#8b7355" strokeWidth="5" fill="none" />
+      <circle cx="-10" cy="-14" r="4" fill="#333" />
+      <circle cx="10" cy="-14" r="4" fill="#333" />
+      <circle cx="-8" cy="-15" r="1.5" fill="white" />
+      <circle cx="12" cy="-15" r="1.5" fill="white" />
+      <circle cx="-16" cy="-2" r="6" fill="#ffab91" opacity="0.4" />
+      <circle cx="16" cy="-2" r="6" fill="#ffab91" opacity="0.4" />
+      <path d="M-9,3 Q0,13 9,3" stroke="#555" strokeWidth="2" fill="none" />
+    </g>
+  );
+}
 
-  if (keywords.yelling) {
-    beforeStory = '소리친 후 밀려오는 자책감';
-    afterStory = '회복할 줄 아는 부모의 용기';
-    beforeScene = '폭풍우 속 웅크린 밤';
-    afterScene = '사과와 포옹이 피어나는 아침';
-  } else if (keywords.tired) {
-    beforeStory = '끝없는 피로에 잠긴 하루';
-    afterStory = '쉬어도 된다는 허락';
-    beforeScene = '무거운 안개에 갇힌 저녁';
-    afterScene = '안개가 걷히며 보이는 따뜻한 빛';
-  } else if (keywords.work) {
-    beforeStory = '일과 육아 사이에서 찢기는 마음';
-    afterStory = '노력하는 어른의 아름다운 모습';
-    beforeScene = '출근길 뒤돌아보는 발걸음';
-    afterScene = '퇴근 후 눈 맞추는 10분의 기적';
-  } else if (keywords.sleep) {
-    beforeStory = '잠 못 드는 밤의 고단함';
-    afterStory = '뇌가 자라는 소리';
-    beforeScene = '깜깜한 새벽 홀로 깨어있는 시간';
-    afterScene = '아이와 함께 맞이하는 햇살';
-  } else if (keywords.food) {
-    beforeStory = '밥 한 숟갈의 전쟁';
-    afterStory = '자율성이 자라나는 식탁';
-    beforeScene = '뿌리치는 숟가락 앞의 답답함';
-    afterScene = '스스로 집어먹는 작은 손';
-  } else if (keywords.screen) {
-    beforeStory = '스크린 앞에 아이를 둔 죄책감';
-    afterStory = '생존 전략이자 지혜로운 선택';
-    beforeScene = '어두운 방 화면빛만 비추는 저녁';
-    afterScene = '함께 보며 대화하는 시간';
-  } else if (keywords.fighting) {
-    beforeStory = '아이 앞에서의 갈등';
-    afterStory = '화해를 보여주는 것도 교육';
-    beforeScene = '팽팽한 공기 속 얼어붙은 아이';
-    afterScene = '손을 잡고 함께 웃는 가족';
-  } else if (keywords.lonely) {
-    beforeStory = '혼자 감당하는 무게';
-    afterStory = '도움을 요청하는 용기';
-    beforeScene = '텅 빈 방에 울리는 아이 울음';
-    afterScene = '누군가와 나누는 따뜻한 대화';
-  } else if (keywords.guilt) {
-    beforeStory = '자책의 소용돌이';
-    afterStory = '자책은 사랑의 증거';
-    beforeScene = '어둠 속 자신을 탓하는 밤';
-    afterScene = '사랑으로 다시 일어서는 아침';
-  } else {
-    beforeStory = emotion ? `${emotion}에 잠긴 하루` : '힘겨운 하루의 무게';
-    afterStory = '마음의 짐을 내려놓는 순간';
-    beforeScene = '어둠 속 홀로 걷는 길';
-    afterScene = '숲에서 찾은 따뜻한 쉼터';
+// ===== 주제별 Before 씬 =====
+function BeforeSceneContent({ topic }: { topic: SceneTopic }) {
+  switch (topic) {
+    case 'play':
+      return (
+        <g>
+          <rect x="80" y="328" width="18" height="18" fill="#e74c3c" opacity="0.5" rx="2" />
+          <rect x="105" y="332" width="14" height="14" fill="#3498db" opacity="0.4" rx="2" transform="rotate(15 112 339)" />
+          <rect x="275" y="326" width="16" height="16" fill="#f39c12" opacity="0.4" rx="2" transform="rotate(-12 283 334)" />
+          <g transform="translate(295, 318) rotate(40)">
+            <circle cx="0" cy="0" r="10" fill="#d4a574" opacity="0.4" />
+            <ellipse cx="0" cy="14" rx="8" ry="11" fill="#c0392b" opacity="0.3" />
+          </g>
+          <SadCharacter x={200} y={250} />
+          <g transform="translate(125, 290)">
+            <circle cx="0" cy="0" r="16" fill="#f5e6d3" />
+            <circle cx="-4" cy="-3" r="2.5" fill="#333" />
+            <circle cx="4" cy="-3" r="2.5" fill="#333" />
+            <path d="M-3,4 Q0,7 3,4" stroke="#555" strokeWidth="1.5" fill="none" />
+            <path d="M16,-4 L40,-12" stroke="#f5e6d3" strokeWidth="5" strokeLinecap="round">
+              <animate attributeName="d" values="M16,-4 L40,-12;M16,-4 L42,-10;M16,-4 L40,-12" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'yelling':
+      return (
+        <g>
+          <path d="M150,80 L168,145 L155,145 L173,210" stroke="#f1c40f" strokeWidth="3" fill="none" opacity="0.6">
+            <animate attributeName="opacity" values="0.6;0.15;0.7;0.2" dur="2s" repeatCount="indefinite" />
+          </path>
+          <path d="M260,100 L274,155 L263,155 L278,205" stroke="#f1c40f" strokeWidth="2.5" fill="none" opacity="0.4">
+            <animate attributeName="opacity" values="0.4;0.1;0.6;0.2" dur="1.8s" repeatCount="indefinite" />
+          </path>
+          {[0, 1, 2].map((i) => (
+            <circle key={`w-${i}`} cx="200" cy="240" r={28 + i * 22} fill="none" stroke="#e74c3c" strokeWidth="1.5" opacity={0.25 - i * 0.06}>
+              <animate attributeName="r" values={`${28 + i * 22};${36 + i * 22};${28 + i * 22}`} dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+          <g transform="translate(200, 250)">
+            <ellipse cx="0" cy="85" rx="42" ry="7" fill="#000" opacity="0.1" />
+            <ellipse cx="0" cy="40" rx="40" ry="38" fill="#e0cdb0" />
+            <circle cx="0" cy="-10" r="33" fill="#f0dcc5" />
+            <path d="M-23,-30 Q-10,-44 0,-38 Q10,-44 23,-30" stroke="#8b7355" strokeWidth="5" fill="none" />
+            <circle cx="-11" cy="-12" r="4" fill="#333" />
+            <circle cx="11" cy="-12" r="4" fill="#333" />
+            <ellipse cx="0" cy="5" rx="9" ry="7" fill="#c0392b" />
+          </g>
+        </g>
+      );
+    case 'tired':
+      return (
+        <g>
+          {[0, 1, 2].map((i) => (
+            <g key={`r-${i}`} transform={`translate(${158 + i * 38}, ${175 + i * 12})`}>
+              <ellipse cx="0" cy="0" rx={20 - i * 2} ry={14 - i} fill={`rgba(100,100,120,${0.45 - i * 0.08})`} />
+              <text x="0" y="4" textAnchor="middle" fontSize="9" fill="#888" opacity="0.5">{['피로', '걱정', '자책'][i]}</text>
+            </g>
+          ))}
+          <SadCharacter x={200} y={255} />
+          <text x="268" y="210" fontSize="17" fill="#7f8c8d" opacity="0.4"><animate attributeName="y" values="210;200;210" dur="3s" repeatCount="indefinite" />z</text>
+          <text x="286" y="192" fontSize="21" fill="#7f8c8d" opacity="0.3"><animate attributeName="y" values="192;180;192" dur="3.5s" repeatCount="indefinite" />z</text>
+          <text x="300" y="172" fontSize="25" fill="#7f8c8d" opacity="0.25"><animate attributeName="y" values="172;158;172" dur="4s" repeatCount="indefinite" />Z</text>
+        </g>
+      );
+    case 'work':
+      return (
+        <g>
+          <rect x="40" y="185" width="48" height="195" fill="#34495e" opacity="0.5" />
+          <rect x="98" y="215" width="38" height="165" fill="#2c3e50" opacity="0.4" />
+          {[0, 1, 2, 3].map((i) => (<rect key={`w-${i}`} x="50" y={205 + i * 38} width="9" height="7" fill="#f1c40f" opacity="0.25" rx="1" />))}
+          <line x1="200" y1="155" x2="200" y2="385" stroke="#e74c3c" strokeWidth="1.5" strokeDasharray="5,4" opacity="0.35" />
+          <g transform="translate(140, 285)">
+            <rect x="-14" y="8" width="28" height="45" rx="4" fill="#34495e" opacity="0.7" />
+            <circle cx="0" cy="-10" r="20" fill="#f0dcc5" />
+            <rect x="-8" y="-1" width="16" height="3" rx="1" fill="#e74c3c" opacity="0.4" />
+            <path d="M-7,-14 Q-3,-10 1,-14" stroke="#666" strokeWidth="1.8" fill="none" />
+            <path d="M1,-14 Q5,-10 9,-14" stroke="#666" strokeWidth="1.8" fill="none" />
+          </g>
+          <g transform="translate(280, 315)">
+            <circle cx="0" cy="0" r="16" fill="#f5e6d3" />
+            <circle cx="-4" cy="-3" r="2.5" fill="#333" />
+            <circle cx="4" cy="-3" r="2.5" fill="#333" />
+            <path d="M-3,4 Q0,1 3,4" stroke="#888" strokeWidth="1.5" fill="none" />
+            <path d="M-16,4 L-40,0" stroke="#f5e6d3" strokeWidth="4" strokeLinecap="round">
+              <animate attributeName="d" values="M-16,4 L-40,0;M-16,4 L-42,-2;M-16,4 L-40,0" dur="2s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'sleep':
+      return (
+        <g>
+          <g transform="translate(300, 130)">
+            <circle cx="0" cy="0" r="28" fill="none" stroke="#546e7a" strokeWidth="2" opacity="0.4" />
+            <text x="0" y="5" textAnchor="middle" fontSize="13" fill="#e74c3c" opacity="0.6" fontFamily="monospace">3:42</text>
+          </g>
+          <rect x="85" y="305" width="230" height="75" rx="4" fill="#263238" opacity="0.25" />
+          <g transform="translate(200, 295)">
+            <ellipse cx="0" cy="35" rx="75" ry="25" fill="#455a64" opacity="0.3" />
+            <circle cx="-28" cy="-5" r="23" fill="#f0dcc5" />
+            <path d="M-40,-20 Q-28,-32 -16,-22" stroke="#8b7355" strokeWidth="3.5" fill="none" />
+            <circle cx="-33" cy="-8" r="3" fill="#e74c3c" opacity="0.5">
+              <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="-23" cy="-8" r="3" fill="#e74c3c" opacity="0.5">
+              <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+            </circle>
+          </g>
+        </g>
+      );
+    case 'food':
+      return (
+        <g>
+          <ellipse cx="200" cy="318" rx="95" ry="22" fill="#8d6e63" opacity="0.35" />
+          <g transform="translate(170, 288) rotate(-25)"><ellipse cx="0" cy="0" rx="20" ry="7" fill="#bdbdbd" opacity="0.5" /></g>
+          {[0, 1, 2, 3].map((i) => (<circle key={`fd-${i}`} cx={150 + i * 24} cy={298 + (i % 3) * 7} r={3} fill={['#ff8a65', '#a5d6a7', '#fff176', '#ef9a9a'][i]} opacity="0.4" />))}
+          <g transform="translate(200, 228)">
+            <circle cx="0" cy="0" r="30" fill="#f0dcc5" />
+            <path d="M-20,-16 Q-8,-28 0,-22 Q8,-28 20,-16" stroke="#8b7355" strokeWidth="4" fill="none" />
+            <path d="M-10,-4 Q-5,0 0,-4" stroke="#666" strokeWidth="2" fill="none" />
+            <path d="M0,-4 Q5,0 10,-4" stroke="#666" strokeWidth="2" fill="none" />
+            <path d="M16,6 Q24,4 28,10" stroke="#999" strokeWidth="1.5" fill="none" opacity="0.3">
+              <animate attributeName="opacity" values="0.3;0.08;0.3" dur="3s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'screen':
+      return (
+        <g>
+          <rect x="135" y="185" width="130" height="85" rx="5" fill="#1a1a2e" stroke="#5dade2" strokeWidth="2" opacity="0.6" />
+          <rect x="140" y="190" width="120" height="75" rx="3" fill="#5dade2" opacity="0.12">
+            <animate attributeName="opacity" values="0.12;0.22;0.12" dur="3s" repeatCount="indefinite" />
+          </rect>
+          <g transform="translate(200, 305)">
+            <circle cx="0" cy="0" r="18" fill="#f5e6d3" opacity="0.8" />
+            <circle cx="-5" cy="-3" r="2.5" fill="#333" />
+            <circle cx="5" cy="-3" r="2.5" fill="#333" />
+          </g>
+          <g transform="translate(85, 315)">
+            <circle cx="0" cy="0" r="16" fill="#f0dcc5" opacity="0.5" />
+            <path d="M-6,-3 Q-2,0 2,-3" stroke="#666" strokeWidth="1.5" fill="none" />
+            <path d="M2,-3 Q6,0 10,-3" stroke="#666" strokeWidth="1.5" fill="none" />
+          </g>
+        </g>
+      );
+    case 'fighting':
+      return (
+        <g>
+          <path d="M200,155 L196,205 L204,250 L198,300 L203,345" stroke="#e74c3c" strokeWidth="2" fill="none" opacity="0.35" strokeDasharray="4,3" />
+          <g transform="translate(130, 275)">
+            <ellipse cx="0" cy="70" rx="32" ry="5" fill="#000" opacity="0.08" />
+            <ellipse cx="0" cy="32" rx="32" ry="32" fill="#e0cdb0" />
+            <circle cx="0" cy="-10" r="28" fill="#f0dcc5" />
+            <path d="M-18,-26 Q-8,-36 0,-30 Q8,-36 18,-26" stroke="#8b7355" strokeWidth="4" fill="none" />
+            <circle cx="-8" cy="-12" r="3" fill="#333" />
+            <path d="M-10,2 Q-5,-1 0,2" stroke="#888" strokeWidth="1.5" fill="none" />
+          </g>
+          <g transform="translate(270, 275)">
+            <ellipse cx="0" cy="70" rx="32" ry="5" fill="#000" opacity="0.08" />
+            <ellipse cx="0" cy="32" rx="32" ry="32" fill="#ddc5a0" />
+            <circle cx="0" cy="-10" r="28" fill="#f0dcc5" />
+            <path d="M-16,-26 Q-4,-38 4,-30 Q12,-38 20,-26" stroke="#6d4c41" strokeWidth="4" fill="none" />
+            <circle cx="8" cy="-12" r="3" fill="#333" />
+            <path d="M0,2 Q5,-1 10,2" stroke="#888" strokeWidth="1.5" fill="none" />
+          </g>
+          <g transform="translate(200, 225)">
+            <path d="M-2,-8 C-7,-15 -15,-14 -15,-8 C-15,-2 -2,8 -2,8" fill="#e74c3c" opacity="0.35" />
+            <path d="M2,-8 C7,-15 15,-14 15,-8 C15,-2 2,8 2,8" fill="#e74c3c" opacity="0.35" />
+            <line x1="-2" y1="-10" x2="2" y2="8" stroke="#2e1a2e" strokeWidth="2" />
+          </g>
+        </g>
+      );
+    case 'lonely':
+      return (
+        <g>
+          <SadCharacter x={200} y={270} scale={0.85} />
+          {[85, 315, 105, 295].map((x, i) => (
+            <circle key={`e-${i}`} cx={x} cy={205 + i * 28} r={4 + i} fill="#34495e" opacity={0.07 - i * 0.01}>
+              <animate attributeName="opacity" values={`${0.07 - i * 0.01};0.02;${0.07 - i * 0.01}`} dur={`${4 + i}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+        </g>
+      );
+    default:
+      return (
+        <g>
+          {[65, 135, 205, 275, 340].map((x, i) => (
+            <line key={`rn-${i}`} x1={x} y1={145 + i * 4} x2={x - 4} y2={162 + i * 4} stroke="#5a7ea6" strokeWidth="1.5" opacity="0.4">
+              <animate attributeName="y1" values={`${145 + i * 4};${295 + i * 3};${145 + i * 4}`} dur={`${1.2 + i * 0.15}s`} repeatCount="indefinite" />
+              <animate attributeName="y2" values={`${162 + i * 4};${312 + i * 3};${162 + i * 4}`} dur={`${1.2 + i * 0.15}s`} repeatCount="indefinite" />
+            </line>
+          ))}
+          <ellipse cx="120" cy="108" rx="58" ry="28" fill="#4a5568" opacity="0.65">
+            <animate attributeName="cx" values="120;133;120" dur="6s" repeatCount="indefinite" />
+          </ellipse>
+          <ellipse cx="260" cy="95" rx="52" ry="26" fill="#4a5568" opacity="0.7">
+            <animate attributeName="cx" values="260;273;260" dur="7s" repeatCount="indefinite" />
+          </ellipse>
+          <SadCharacter x={200} y={255} />
+        </g>
+      );
   }
-
-  // 킬링 메시지를 30자로 자르기
-  const shortKilling = killingMessage.length > 30
-    ? killingMessage.substring(0, 28) + '...'
-    : killingMessage;
-
-  return { beforeStory, afterStory, beforeScene, afterScene, killingMessage: shortKilling };
 }
 
+// ===== 주제별 After 씬 =====
+function AfterSceneContent({ topic }: { topic: SceneTopic }) {
+  switch (topic) {
+    case 'play':
+      return (
+        <g>
+          <g transform="translate(82, 348)">
+            <rect x="0" y="-14" width="12" height="12" fill="#e74c3c" rx="2" opacity="0.6" />
+            <rect x="14" y="-14" width="12" height="12" fill="#3498db" rx="2" opacity="0.6" />
+            <rect x="7" y="-25" width="12" height="12" fill="#f39c12" rx="2" opacity="0.6" />
+          </g>
+          <g transform="translate(200, 280)">
+            <ellipse cx="0" cy="28" rx="105" ry="30" fill="#c8e6c9" opacity="0.4" />
+            <circle cx="-42" cy="-10" r="26" fill="#f0dcc5" />
+            <path d="M-56,-26 Q-42,-38 -28,-30" stroke="#8b7355" strokeWidth="4" fill="none" />
+            <path d="M-50,-13 Q-46,-9 -42,-13" stroke="#666" strokeWidth="2" fill="none" />
+            <path d="M-36,-13 Q-32,-9 -28,-13" stroke="#666" strokeWidth="2" fill="none" />
+            <path d="M-47,0 Q-42,4 -37,0" stroke="#555" strokeWidth="1.5" fill="none" />
+            <g transform="translate(0, -5)">
+              <circle cx="0" cy="0" r="16" fill="#d4a574" />
+              <circle cx="-8" cy="-10" r="5" fill="#c49a6c" />
+              <circle cx="8" cy="-10" r="5" fill="#c49a6c" />
+              <circle cx="-4" cy="-2" r="1.5" fill="#333" />
+              <circle cx="4" cy="-2" r="1.5" fill="#333" />
+              <ellipse cx="0" cy="3" rx="3" ry="2.5" fill="#8d6e63" />
+            </g>
+            <circle cx="42" cy="-5" r="20" fill="#f5e6d3" />
+            <path d="M32,-18 Q42,-28 52,-20" stroke="#6d4c41" strokeWidth="3" fill="none" />
+            <path d="M36,-7 Q40,-4 44,-7" stroke="#666" strokeWidth="1.5" fill="none" />
+            <path d="M38,2 Q42,6 46,2" stroke="#555" strokeWidth="1.5" fill="none" />
+          </g>
+          <g transform="translate(200, 225)">
+            <path d="M0,-7 C-4,-13 -11,-13 -11,-7 C-11,0 0,9 0,9 C0,9 11,0 11,-7 C11,-13 4,-13 0,-7Z" fill="#ef5350" opacity="0.55">
+              <animateTransform attributeName="transform" type="scale" values="1;1.1;1" dur="2s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'yelling':
+      return (
+        <g>
+          {['#ef5350', '#ff9800', '#ffeb3b', '#66bb6a', '#42a5f5'].map((c, i) => (
+            <path key={`rb-${i}`} d={`M65,${198 + i * 3} Q200,${108 + i * 2} 335,${198 + i * 3}`} fill="none" stroke={c} strokeWidth="3" opacity="0.15" />
+          ))}
+          <g transform="translate(200, 272)">
+            <ellipse cx="0" cy="75" rx="45" ry="7" fill="#388e3c" opacity="0.06" />
+            <ellipse cx="0" cy="32" rx="42" ry="40" fill="#f5e6d3" />
+            <circle cx="0" cy="-14" r="30" fill="#f5e6d3" />
+            <path d="M-20,-32 Q-8,-44 0,-38 Q8,-44 20,-32" stroke="#8b7355" strokeWidth="4.5" fill="none" />
+            <circle cx="-9" cy="-18" r="3.5" fill="#333" />
+            <circle cx="9" cy="-18" r="3.5" fill="#333" />
+            <path d="M-7,-3 Q0,5 7,-3" stroke="#555" strokeWidth="2" fill="none" />
+            <circle cx="0" cy="18" r="16" fill="#f5e6d3" />
+            <path d="M-35,2 Q-42,20 -18,35" stroke="#f5e6d3" strokeWidth="11" fill="none" strokeLinecap="round" />
+            <path d="M35,2 Q42,20 18,35" stroke="#f5e6d3" strokeWidth="11" fill="none" strokeLinecap="round" />
+          </g>
+          {[0, 1, 2].map((i) => (
+            <g key={`h-${i}`} transform={`translate(${162 + i * 38}, ${205 - i * 12})`}>
+              <path d="M0,-3 C-2,-6 -5,-5 -5,-3 C-5,0 0,4 0,4 C0,4 5,0 5,-3 C5,-5 2,-6 0,-3Z" fill="#ef5350" opacity={0.35 - i * 0.08}>
+                <animateTransform attributeName="transform" type="translate" values="0,0;0,-6;0,0" dur={`${3 + i}s`} repeatCount="indefinite" />
+              </path>
+            </g>
+          ))}
+        </g>
+      );
+    case 'tired':
+      return (
+        <g>
+          {[95, 165, 245, 315].map((x, i) => (
+            <g key={`fl-${i}`} transform={`translate(${x}, 365)`}>
+              <line x1="0" y1="0" x2="0" y2="22" stroke="#66bb6a" strokeWidth="2" />
+              <circle cx="0" cy="-4" r={5 + (i % 2)} fill={['#ef5350', '#ba68c8', '#ffa726', '#42a5f5'][i]}>
+                <animate attributeName="r" values={`${5 + (i % 2)};${6.5 + (i % 2)};${5 + (i % 2)}`} dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+              </circle>
+            </g>
+          ))}
+          <g transform="translate(125, 275)">
+            <rect x="-10" y="0" width="20" height="24" rx="3" fill="#795548" opacity="0.6" />
+            <path d="M-4,-8 Q-1,-18 2,-8" stroke="#bdbdbd" strokeWidth="1.5" fill="none" opacity="0.4">
+              <animate attributeName="d" values="M-4,-8 Q-1,-18 2,-8;M-4,-12 Q-1,-22 2,-12;M-4,-8 Q-1,-18 2,-8" dur="2s" repeatCount="indefinite" />
+            </path>
+          </g>
+          <HappyCharacter x={230} y={248} />
+          <path d="M195,258 Q177,230 173,205" stroke="#f5e6d3" strokeWidth="12" fill="none" strokeLinecap="round">
+            <animate attributeName="d" values="M195,258 Q177,230 173,205;M195,258 Q175,225 170,198;M195,258 Q177,230 173,205" dur="3s" repeatCount="indefinite" />
+          </path>
+          <path d="M265,258 Q283,230 287,205" stroke="#f5e6d3" strokeWidth="12" fill="none" strokeLinecap="round">
+            <animate attributeName="d" values="M265,258 Q283,230 287,205;M265,258 Q285,225 290,198;M265,258 Q283,230 287,205" dur="3s" repeatCount="indefinite" />
+          </path>
+        </g>
+      );
+    case 'work':
+      return (
+        <g>
+          <g transform="translate(200, 205)">
+            <rect x="-55" y="0" width="110" height="72" fill="#8d6e63" opacity="0.35" rx="3" />
+            <polygon points="-65,0 0,-35 65,0" fill="#a1887f" opacity="0.35" />
+            <rect x="-35" y="18" width="25" height="22" fill="#ffcc02" opacity="0.45" rx="2">
+              <animate attributeName="opacity" values="0.45;0.65;0.45" dur="3s" repeatCount="indefinite" />
+            </rect>
+            <rect x="10" y="18" width="25" height="22" fill="#ffcc02" opacity="0.35" rx="2" />
+            <rect x="-10" y="38" width="20" height="34" fill="#6d4c41" opacity="0.45" rx="2" />
+          </g>
+          <g transform="translate(200, 315)">
+            <circle cx="-18" cy="0" r="20" fill="#f0dcc5" />
+            <circle cx="-23" cy="-4" r="3" fill="#333" />
+            <circle cx="-13" cy="-4" r="3" fill="#333" />
+            <path d="M-23,5 Q-18,10 -13,5" stroke="#555" strokeWidth="1.8" fill="none" />
+            <circle cx="18" cy="8" r="14" fill="#f5e6d3" />
+            <circle cx="14" cy="5" r="2" fill="#333" />
+            <circle cx="22" cy="5" r="2" fill="#333" />
+            <path d="M15,12 Q18,15 21,12" stroke="#555" strokeWidth="1.5" fill="none" />
+            <line x1="-3" y1="12" x2="7" y2="15" stroke="#f0dcc5" strokeWidth="4" strokeLinecap="round" />
+          </g>
+          <g transform="translate(200, 290)">
+            <path d="M0,-5 C-3,-9 -8,-9 -8,-5 C-8,-1 0,5 0,5 C0,5 8,-1 8,-5 C8,-9 3,-9 0,-5Z" fill="#ef5350" opacity="0.45">
+              <animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="1.8s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'sleep':
+      return (
+        <g>
+          {[85, 155, 255, 325, 125, 285].map((x, i) => (
+            <circle key={`st-${i}`} cx={x} cy={82 + (i % 3) * 28} r={1.5 + (i % 2)} fill="#fff9c4" opacity={0.45 + (i % 3) * 0.12}>
+              <animate attributeName="opacity" values={`${0.45 + (i % 3) * 0.12};0.15;${0.45 + (i % 3) * 0.12}`} dur={`${2 + i * 0.4}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+          <circle cx="310" cy="88" r="25" fill="#fff9c4" opacity="0.35" />
+          <circle cx="317" cy="82" r="20" fill="#e8eaf6" />
+          <g transform="translate(200, 295)">
+            <ellipse cx="0" cy="30" rx="82" ry="18" fill="#c5cae9" opacity="0.25" />
+            <ellipse cx="0" cy="18" rx="78" ry="26" fill="#7986cb" opacity="0.15" />
+            <circle cx="-28" cy="-5" r="24" fill="#f0dcc5" />
+            <path d="M-40,-20 Q-28,-32 -16,-22" stroke="#8b7355" strokeWidth="3.5" fill="none" />
+            <path d="M-36,-8 Q-32,-5 -28,-8" stroke="#666" strokeWidth="1.8" fill="none" />
+            <path d="M-20,-8 Q-16,-5 -12,-8" stroke="#666" strokeWidth="1.8" fill="none" />
+            <path d="M-32,4 Q-28,7 -24,4" stroke="#555" strokeWidth="1.5" fill="none" />
+            <circle cx="22" cy="0" r="18" fill="#f5e6d3" />
+            <path d="M13,-12 Q22,-22 31,-14" stroke="#6d4c41" strokeWidth="2.5" fill="none" />
+            <path d="M16,-2 Q20,1 24,-2" stroke="#666" strokeWidth="1.5" fill="none" />
+            <path d="M18,5 Q22,8 26,5" stroke="#555" strokeWidth="1.5" fill="none" />
+          </g>
+          <text x="262" y="245" fontSize="13" fill="#7986cb" opacity="0.35"><animate attributeName="y" values="245;238;245" dur="3s" repeatCount="indefinite" />z</text>
+          <text x="275" y="232" fontSize="16" fill="#7986cb" opacity="0.25"><animate attributeName="y" values="232;223;232" dur="3.5s" repeatCount="indefinite" />z</text>
+        </g>
+      );
+    case 'food':
+      return (
+        <g>
+          <ellipse cx="200" cy="315" rx="92" ry="22" fill="#a1887f" opacity="0.25" />
+          <ellipse cx="162" cy="290" rx="18" ry="5" fill="#e0e0e0" opacity="0.5" />
+          <ellipse cx="238" cy="290" rx="14" ry="4" fill="#e0e0e0" opacity="0.5" />
+          <circle cx="162" cy="285" r="4" fill="#ff8a65" opacity="0.5" />
+          <circle cx="238" cy="285" r="3" fill="#fff176" opacity="0.5" />
+          <g transform="translate(162, 245)">
+            <circle cx="0" cy="0" r="22" fill="#f0dcc5" />
+            <circle cx="-6" cy="-4" r="3" fill="#333" />
+            <circle cx="6" cy="-4" r="3" fill="#333" />
+            <path d="M-6,5 Q0,10 6,5" stroke="#555" strokeWidth="1.8" fill="none" />
+          </g>
+          <g transform="translate(238, 255)">
+            <circle cx="0" cy="0" r="16" fill="#f5e6d3" />
+            <circle cx="-4" cy="-3" r="2.5" fill="#333" />
+            <circle cx="4" cy="-3" r="2.5" fill="#333" />
+            <path d="M-3,3 Q0,6 3,3" stroke="#555" strokeWidth="1.5" fill="none" />
+            <line x1="16" y1="4" x2="24" y2="-4" stroke="#bdbdbd" strokeWidth="2.5" strokeLinecap="round" />
+          </g>
+        </g>
+      );
+    case 'screen':
+      return (
+        <g>
+          <g transform="translate(82, 308)">
+            <rect x="-5" y="0" width="10" height="28" fill="#795548" rx="2" />
+            <circle cx="0" cy="-10" r="20" fill="#66bb6a" opacity="0.7" />
+          </g>
+          <g transform="translate(318, 312)">
+            <rect x="-5" y="0" width="10" height="25" fill="#6d4c41" rx="2" />
+            <circle cx="0" cy="-10" r="18" fill="#4caf50" opacity="0.7" />
+          </g>
+          <g transform="translate(200, 280)">
+            <circle cx="-22" cy="-10" r="26" fill="#f0dcc5" />
+            <path d="M-36,-26 Q-22,-38 -8,-30" stroke="#8b7355" strokeWidth="4" fill="none" />
+            <circle cx="-27" cy="-14" r="3" fill="#333" />
+            <circle cx="-17" cy="-14" r="3" fill="#333" />
+            <path d="M-27,-2 Q-22,4 -17,-2" stroke="#555" strokeWidth="1.8" fill="none" />
+            <circle cx="14" cy="0" r="18" fill="#f5e6d3" />
+            <circle cx="10" cy="-3" r="2.5" fill="#333" />
+            <circle cx="18" cy="-3" r="2.5" fill="#333" />
+            <path d="M11,4 Q14,7 17,4" stroke="#555" strokeWidth="1.5" fill="none" />
+            <g transform="translate(-4, 28)">
+              <rect x="-16" y="0" width="32" height="22" rx="2" fill="#42a5f5" opacity="0.5" />
+              <line x1="0" y1="2" x2="0" y2="20" stroke="white" strokeWidth="1" opacity="0.4" />
+            </g>
+          </g>
+        </g>
+      );
+    case 'fighting':
+      return (
+        <g>
+          <path d="M132,295 Q200,268 268,295" fill="none" stroke="#ec407a" strokeWidth="2.5" opacity="0.25" />
+          <g transform="translate(142, 275)">
+            <ellipse cx="0" cy="65" rx="28" ry="4" fill="#388e3c" opacity="0.05" />
+            <ellipse cx="0" cy="28" rx="28" ry="28" fill="#f5e6d3" />
+            <circle cx="0" cy="-10" r="24" fill="#f0dcc5" />
+            <path d="M-16,-25 Q-5,-34 0,-28 Q5,-34 16,-25" stroke="#8b7355" strokeWidth="3.5" fill="none" />
+            <circle cx="-7" cy="-14" r="3" fill="#333" />
+            <circle cx="7" cy="-14" r="3" fill="#333" />
+            <path d="M-6,0 Q0,6 6,0" stroke="#555" strokeWidth="1.8" fill="none" />
+            <path d="M26,12 L50,18" stroke="#f0dcc5" strokeWidth="7" strokeLinecap="round" />
+          </g>
+          <g transform="translate(258, 275)">
+            <ellipse cx="0" cy="65" rx="28" ry="4" fill="#388e3c" opacity="0.05" />
+            <ellipse cx="0" cy="28" rx="28" ry="28" fill="#f5e6d3" />
+            <circle cx="0" cy="-10" r="24" fill="#f0dcc5" />
+            <path d="M-14,-25 Q-3,-36 3,-28 Q10,-36 18,-25" stroke="#6d4c41" strokeWidth="3.5" fill="none" />
+            <circle cx="-7" cy="-14" r="3" fill="#333" />
+            <circle cx="7" cy="-14" r="3" fill="#333" />
+            <path d="M-6,0 Q0,6 6,0" stroke="#555" strokeWidth="1.8" fill="none" />
+            <path d="M-26,12 L-50,18" stroke="#f0dcc5" strokeWidth="7" strokeLinecap="round" />
+          </g>
+          <g transform="translate(200, 298)">
+            <path d="M0,-12 C-4,-18 -9,-18 -9,-12 C-9,-6 0,-1 0,-1 C0,-1 9,-6 9,-12 C9,-18 4,-18 0,-12Z" fill="#ef5350" opacity="0.5">
+              <animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+    case 'lonely':
+      return (
+        <g>
+          {[125, 200, 275].map((x, i) => (
+            <g key={`p-${i}`} transform={`translate(${x}, 285)`}>
+              <circle cx="0" cy="0" r={i === 1 ? 22 : 16} fill={i === 1 ? '#f0dcc5' : '#f5e6d3'} />
+              <circle cx={-3} cy={-3} r={i === 1 ? 3 : 2.5} fill="#333" />
+              <circle cx={3} cy={-3} r={i === 1 ? 3 : 2.5} fill="#333" />
+              <path d={`M-${2 + i},${2 + i} Q0,${5 + i} ${2 + i},${2 + i}`} stroke="#555" strokeWidth={i === 1 ? 1.8 : 1.5} fill="none" />
+            </g>
+          ))}
+          <line x1="141" y1="285" x2="178" y2="285" stroke="#26a69a" strokeWidth="3" strokeLinecap="round" opacity="0.35" />
+          <line x1="222" y1="285" x2="259" y2="285" stroke="#26a69a" strokeWidth="3" strokeLinecap="round" opacity="0.35" />
+          {[162, 240].map((x, i) => (
+            <g key={`ch-${i}`} transform={`translate(${x}, 272)`}>
+              <path d="M0,-3 C-2,-6 -5,-6 -5,-3 C-5,0 0,3 0,3 C0,3 5,0 5,-3 C5,-6 2,-6 0,-3Z" fill="#ef5350" opacity={0.35}>
+                <animate attributeName="opacity" values="0.35;0.15;0.35" dur={`${2 + i * 0.5}s`} repeatCount="indefinite" />
+              </path>
+            </g>
+          ))}
+          <circle cx="200" cy="285" r="55" fill="#26a69a" opacity="0.035">
+            <animate attributeName="r" values="55;65;55" dur="4s" repeatCount="indefinite" />
+          </circle>
+        </g>
+      );
+    default:
+      return (
+        <g>
+          {[120, 200, 280].map((x, i) => (
+            <g key={`df-${i}`} transform={`translate(${x}, 372)`}>
+              <line x1="0" y1="0" x2="0" y2="16" stroke="#66bb6a" strokeWidth="2" />
+              <circle cx="0" cy="-4" r="5" fill={['#ef5350', '#ffa726', '#ba68c8'][i]} />
+            </g>
+          ))}
+          <g transform="translate(75, 325)">
+            <rect x="-4" y="0" width="8" height="26" fill="#795548" rx="2" />
+            <circle cx="0" cy="-8" r="18" fill="#66bb6a" />
+          </g>
+          <g transform="translate(335, 320)">
+            <rect x="-5" y="0" width="10" height="30" fill="#6d4c41" rx="2" />
+            <circle cx="0" cy="-12" r="22" fill="#4caf50" />
+          </g>
+          <HappyCharacter x={200} y={260} />
+          <path d="M165,270 Q140,240 135,215" stroke="#f5e6d3" strokeWidth="12" fill="none" strokeLinecap="round">
+            <animate attributeName="d" values="M165,270 Q140,240 135,215;M165,270 Q138,235 132,208;M165,270 Q140,240 135,215" dur="3s" repeatCount="indefinite" />
+          </path>
+          <path d="M235,270 Q260,240 265,215" stroke="#f5e6d3" strokeWidth="12" fill="none" strokeLinecap="round">
+            <animate attributeName="d" values="M235,270 Q260,240 265,215;M235,270 Q262,235 268,208;M235,270 Q260,240 265,215" dur="3s" repeatCount="indefinite" />
+          </path>
+          <g transform="translate(200, 205)">
+            <path d="M0,-7 C-4,-13 -12,-13 -12,-7 C-12,0 0,9 0,9 C0,9 12,0 12,-7 C12,-13 4,-13 0,-7Z" fill="#ef5350" opacity="0.6">
+              <animateTransform attributeName="transform" type="scale" values="1;1.1;1" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      );
+  }
+}
+
+// ===== 메인 컴포넌트 =====
 export default function CounselingResultCards({ emotion, emotionEmoji, userContent, aiContent }: CounselingResultCardsProps) {
   const beforeSvgRef = useRef<SVGSVGElement>(null);
   const afterSvgRef = useRef<SVGSVGElement>(null);
@@ -166,7 +694,6 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
   const handleDownload = useCallback(async (type: 'before' | 'after') => {
     const svgEl = type === 'before' ? beforeSvgRef.current : afterSvgRef.current;
     if (!svgEl) return;
-
     try {
       const canvas = await renderCardToCanvas(svgEl, 400, 520);
       downloadCanvasAsPng(canvas, `counseling-${type}.png`);
@@ -175,14 +702,17 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
     }
   }, []);
 
-  const theme = getEmotionTheme(emotion);
-  const emotionLabel = emotion || '힘듦';
-  const emoji = emotionEmoji || '😔';
+  const topic = useMemo(() => detectTopic(userContent || ''), [userContent]);
+  const theme = useMemo(() => getSceneTheme(topic, emotion), [topic, emotion]);
 
-  const story = useMemo(
-    () => extractStory(userContent, aiContent, emotion),
-    [userContent, aiContent, emotion]
-  );
+  const killingMessage = useMemo(() => {
+    const ai = aiContent || '';
+    const m = ai.match(/==([^=]+)==/);
+    const msg = m ? m[1].trim() : '당신은 이미 충분히 좋은 부모입니다';
+    return msg.length > 30 ? msg.substring(0, 28) + '...' : msg;
+  }, [aiContent]);
+
+  const emoji = emotionEmoji || '😔';
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -192,296 +722,85 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
-        {/* ===== 상담 전 카드 ===== */}
+        {/* 상담 전 */}
         <div className="flex flex-col items-center space-y-2">
           <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full">
-            <svg
-              ref={beforeSvgRef}
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 400 520"
-              width="100%"
-              height="auto"
-              className="block"
-            >
+            <svg ref={beforeSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
               <defs>
                 <linearGradient id="bgBefore" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={theme.bg1} />
-                  <stop offset="100%" stopColor={theme.bg2} />
+                  <stop offset="0%" stopColor={theme.before.bg1} />
+                  <stop offset="100%" stopColor={theme.before.bg2} />
                 </linearGradient>
-                <linearGradient id="cloudGray" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4a5568" />
-                  <stop offset="100%" stopColor="#2d3748" />
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                  <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
               </defs>
               <rect width="400" height="520" fill="url(#bgBefore)" />
-
-              {/* 흐릿한 달 */}
-              <circle cx="320" cy="70" r="35" fill="#555" opacity="0.2">
-                <animate attributeName="opacity" values="0.2;0.3;0.2" dur="4s" repeatCount="indefinite" />
+              <circle cx="320" cy="70" r="28" fill="#555" opacity="0.14">
+                <animate attributeName="opacity" values="0.14;0.22;0.14" dur="4s" repeatCount="indefinite" />
               </circle>
-              <circle cx="325" cy="65" r="28" fill="url(#bgBefore)" />
-
-              {/* 먹구름들 */}
-              <ellipse cx="100" cy="100" rx="70" ry="35" fill="url(#cloudGray)" opacity="0.8">
-                <animate attributeName="cx" values="100;115;100" dur="6s" repeatCount="indefinite" />
-              </ellipse>
-              <ellipse cx="250" cy="85" rx="60" ry="30" fill="url(#cloudGray)" opacity="0.9">
-                <animate attributeName="cx" values="250;265;250" dur="7s" repeatCount="indefinite" />
-              </ellipse>
-
-              {/* 비 */}
-              {[60, 130, 200, 270, 340].map((x, i) => (
-                <line
-                  key={`rain-${i}`}
-                  x1={x}
-                  y1={140 + i * 4}
-                  x2={x - 4}
-                  y2={158 + i * 4}
-                  stroke={theme.rain}
-                  strokeWidth="1.5"
-                  opacity="0.5"
-                >
-                  <animate
-                    attributeName="y1"
-                    values={`${140 + i * 4};${300 + i * 3};${140 + i * 4}`}
-                    dur={`${1.2 + i * 0.15}s`}
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="y2"
-                    values={`${158 + i * 4};${318 + i * 3};${158 + i * 4}`}
-                    dur={`${1.2 + i * 0.15}s`}
-                    repeatCount="indefinite"
-                  />
-                </line>
-              ))}
-
-              {/* 캐릭터 - 웅크린 모습 */}
-              <g transform="translate(200, 270)">
-                <ellipse cx="0" cy="95" rx="50" ry="8" fill="#000" opacity="0.15" />
-                <ellipse cx="0" cy="45" rx="48" ry="45" fill="#e0cdb0" />
-                <circle cx="0" cy="-10" r="38" fill="#f0dcc5" />
-                <path d="M-30,-35 Q-15,-55 0,-48 Q15,-55 30,-35" stroke="#8b7355" strokeWidth="6" fill="none" />
-                <path d="M-16,-16 Q-10,-11 -4,-16" stroke="#666" strokeWidth="2.5" fill="none" />
-                <path d="M4,-16 Q10,-11 16,-16" stroke="#666" strokeWidth="2.5" fill="none" />
-                <ellipse cx="-13" cy="-6" rx="3" ry="5" fill={theme.accent} opacity="0.7">
-                  <animate attributeName="cy" values="-6;8;-6" dur="2.5s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.7;0;0.7" dur="2.5s" repeatCount="indefinite" />
-                </ellipse>
-                <path d="M-8,2 Q0,8 8,2" stroke="#888" strokeWidth="2" fill="none" />
-                <path d="M-38,15 Q-48,45 -15,55" stroke="#e0cdb0" strokeWidth="14" fill="none" strokeLinecap="round" />
-                <path d="M38,15 Q48,45 15,55" stroke="#e0cdb0" strokeWidth="14" fill="none" strokeLinecap="round" />
-                <ellipse cx="-18" cy="75" rx="18" ry="14" fill="#e0cdb0" />
-                <ellipse cx="18" cy="75" rx="18" ry="14" fill="#e0cdb0" />
-              </g>
-
-              {/* 감정 아이콘 */}
-              <text x="80" y="210" fontSize="28" opacity="0.3" filter="url(#glow)">
-                <animate attributeName="y" values="210;200;210" dur="3s" repeatCount="indefinite" />
-                {theme.sceneEmoji}
-              </text>
-
-              {/* 하단 스토리 텍스트 */}
+              <circle cx="324" cy="65" r="22" fill="url(#bgBefore)" />
+              <BeforeSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
-              <text x="200" y="430" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="18" fontWeight="bold">
-                상담 전
-              </text>
-              <text x="200" y="455" textAnchor="middle" fill={theme.accent} fontFamily="sans-serif" fontSize="13">
-                {emoji} {story.beforeStory}
-              </text>
-              <text x="200" y="478" textAnchor="middle" fill="#9ca3af" fontFamily="sans-serif" fontSize="11" opacity="0.8">
-                {story.beforeScene}
-              </text>
-              <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="10" opacity="0.6">
-                어른의 숲 | Forest of Calm
-              </text>
+              <text x="200" y="428" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 전</text>
+              <text x="200" y="453" textAnchor="middle" fill={theme.before.accent} fontFamily="sans-serif" fontSize="13">{emoji} {theme.beforeTitle}</text>
+              <text x="200" y="476" textAnchor="middle" fill="#9ca3af" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.beforeScene}</text>
+              <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
             </svg>
           </div>
-          <button
-            onClick={() => handleDownload('before')}
-            className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors"
-          >
-            📥 저장
-          </button>
+          <button onClick={() => handleDownload('before')} className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors">📥 저장</button>
         </div>
 
-        {/* ===== 상담 후 카드 ===== */}
+        {/* 상담 후 */}
         <div className="flex flex-col items-center space-y-2">
           <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full">
-            <svg
-              ref={afterSvgRef}
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 400 520"
-              width="100%"
-              height="auto"
-              className="block"
-            >
+            <svg ref={afterSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
               <defs>
                 <linearGradient id="bgAfter" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={theme.afterBg1} />
-                  <stop offset="40%" stopColor={theme.afterBg2} />
-                  <stop offset="100%" stopColor={theme.afterAccent} stopOpacity="0.3" />
-                </linearGradient>
-                <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fff9c4" />
-                  <stop offset="100%" stopColor="#ffee58" />
+                  <stop offset="0%" stopColor={theme.after.bg1} />
+                  <stop offset="40%" stopColor={theme.after.bg2} />
+                  <stop offset="100%" stopColor={theme.after.accent} stopOpacity="0.3" />
                 </linearGradient>
                 <radialGradient id="sunRay" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#fff9c4" stopOpacity="0.6" />
+                  <stop offset="0%" stopColor="#fff9c4" stopOpacity="0.5" />
                   <stop offset="100%" stopColor="#fff9c4" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <rect width="400" height="520" fill="url(#bgAfter)" />
-
-              {/* 태양 */}
-              <circle cx="320" cy="75" r="65" fill="url(#sunRay)">
-                <animate attributeName="r" values="65;75;65" dur="4s" repeatCount="indefinite" />
+              <circle cx="320" cy="70" r="50" fill="url(#sunRay)">
+                <animate attributeName="r" values="50;60;50" dur="4s" repeatCount="indefinite" />
               </circle>
-              <circle cx="320" cy="75" r="32" fill="url(#sunGlow)">
-                <animate attributeName="r" values="32;35;32" dur="2.5s" repeatCount="indefinite" />
+              <circle cx="320" cy="70" r="24" fill="#fff9c4" opacity="0.6">
+                <animate attributeName="r" values="24;27;24" dur="2.5s" repeatCount="indefinite" />
               </circle>
-              {/* 햇살 */}
-              {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-                const rad = (angle * Math.PI) / 180;
-                const x1 = 320 + Math.cos(rad) * 40;
-                const y1 = 75 + Math.sin(rad) * 40;
-                const x2 = 320 + Math.cos(rad) * 55;
-                const y2 = 75 + Math.sin(rad) * 55;
-                return (
-                  <line key={`ray-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffd54f" strokeWidth="2" opacity="0.5">
-                    <animate attributeName="opacity" values="0.5;0.8;0.5" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
-                  </line>
-                );
-              })}
-
-              {/* 흰 구름 */}
-              <g opacity="0.85">
-                <ellipse cx="90" cy="85" rx="45" ry="22" fill="white">
-                  <animate attributeName="cx" values="90;110;90" dur="8s" repeatCount="indefinite" />
+              <g opacity="0.65">
+                <ellipse cx="90" cy="85" rx="35" ry="16" fill="white">
+                  <animate attributeName="cx" values="90;108;90" dur="8s" repeatCount="indefinite" />
                 </ellipse>
-                <ellipse cx="125" cy="75" rx="35" ry="18" fill="white">
-                  <animate attributeName="cx" values="125;145;125" dur="9s" repeatCount="indefinite" />
+                <ellipse cx="118" cy="77" rx="25" ry="12" fill="white">
+                  <animate attributeName="cx" values="118;136;118" dur="9s" repeatCount="indefinite" />
                 </ellipse>
               </g>
-
-              {/* 무지개 */}
-              <path d="M50,170 Q200,60 350,170" fill="none" stroke="#ef5350" strokeWidth="3" opacity="0.12" />
-              <path d="M55,175 Q200,68 345,175" fill="none" stroke="#ff9800" strokeWidth="3" opacity="0.10" />
-              <path d="M60,180 Q200,76 340,180" fill="none" stroke="#4caf50" strokeWidth="3" opacity="0.10" />
-
-              {/* 나무 */}
-              <g transform="translate(55, 330)">
-                <rect x="-6" y="0" width="12" height="35" fill="#795548" rx="3" />
-                <circle cx="0" cy="-12" r="22" fill="#66bb6a" />
-              </g>
-              <g transform="translate(350, 325)">
-                <rect x="-7" y="0" width="14" height="38" fill="#6d4c41" rx="3" />
-                <circle cx="0" cy="-15" r="26" fill="#4caf50" />
-              </g>
-
-              {/* 꽃들 */}
-              {[100, 200, 300].map((x, i) => (
-                <g key={`flower-${i}`} transform={`translate(${x}, 380)`}>
-                  <line x1="0" y1="0" x2="0" y2="20" stroke="#66bb6a" strokeWidth="2.5" />
-                  <circle cx="0" cy="-5" r={6 + (i % 2)} fill={['#ef5350', '#ba68c8', '#ffa726'][i]}>
-                    <animate attributeName="r" values={`${6 + (i % 2)};${7 + (i % 2)};${6 + (i % 2)}`} dur={`${2 + i * 0.4}s`} repeatCount="indefinite" />
-                  </circle>
-                  <circle cx="0" cy="-5" r="2.5" fill="#fff9c4" />
-                </g>
-              ))}
-
-              {/* 캐릭터 - 밝은 모습 */}
-              <g transform="translate(200, 265)">
-                <ellipse cx="0" cy="105" rx="45" ry="7" fill="#388e3c" opacity="0.1" />
-                <ellipse cx="0" cy="45" rx="48" ry="45" fill="#f5e6d3" />
-                <circle cx="0" cy="-10" r="38" fill="#f5e6d3" />
-                <path d="M-30,-35 Q-15,-55 0,-48 Q15,-55 30,-35" stroke="#8b7355" strokeWidth="6" fill="none" />
-                <circle cx="-20" cy="0" r="7" fill="#ffab91" opacity="0.45" />
-                <circle cx="20" cy="0" r="7" fill="#ffab91" opacity="0.45" />
-                <circle cx="-12" cy="-14" r="5" fill="#333" />
-                <circle cx="12" cy="-14" r="5" fill="#333" />
-                <circle cx="-10" cy="-15.5" r="2" fill="white" />
-                <circle cx="14" cy="-15.5" r="2" fill="white" />
-                <path d="M-12,4 Q0,18 12,4" stroke="#555" strokeWidth="2.5" fill="none" />
-                <path d="M-38,15 Q-65,-15 -75,-40" stroke="#f5e6d3" strokeWidth="14" fill="none" strokeLinecap="round">
-                  <animate attributeName="d" values="M-38,15 Q-65,-15 -75,-40;M-38,15 Q-68,-20 -80,-45;M-38,15 Q-65,-15 -75,-40" dur="3s" repeatCount="indefinite" />
-                </path>
-                <path d="M38,15 Q65,-15 75,-40" stroke="#f5e6d3" strokeWidth="14" fill="none" strokeLinecap="round">
-                  <animate attributeName="d" values="M38,15 Q65,-15 75,-40;M38,15 Q68,-20 80,-45;M38,15 Q65,-15 75,-40" dur="3s" repeatCount="indefinite" />
-                </path>
-                <circle cx="-75" cy="-40" r="7" fill="#f5e6d3" />
-                <circle cx="75" cy="-40" r="7" fill="#f5e6d3" />
-                {/* 하트 */}
-                <g transform="translate(0, -65)">
-                  <path d="M0,-10 C-6,-20 -18,-20 -18,-10 C-18,0 0,14 0,14 C0,14 18,0 18,-10 C18,-20 6,-20 0,-10Z" fill="#ef5350" opacity="0.85">
-                    <animate attributeName="opacity" values="0.85;0.5;0.85" dur="1.5s" repeatCount="indefinite" />
-                    <animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="1.5s" repeatCount="indefinite" />
-                  </path>
-                </g>
-                {/* 반짝임 */}
-                <text x="-55" y="-50" fontSize="16" opacity="0.6">
-                  <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
-                  {theme.healEmoji}
-                </text>
-              </g>
-
-              {/* 나비 */}
-              <g>
-                <animateTransform attributeName="transform" type="translate" values="75,190;95,175;115,185;75,190" dur="6s" repeatCount="indefinite" />
-                <ellipse cx="-6" cy="0" rx="6" ry="4" fill="#ba68c8" opacity="0.7">
-                  <animate attributeName="rx" values="6;2;6" dur="0.4s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="6" cy="0" rx="6" ry="4" fill="#ba68c8" opacity="0.7">
-                  <animate attributeName="rx" values="6;2;6" dur="0.4s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="0" cy="0" rx="1" ry="3" fill="#4a148c" />
-              </g>
-
-              {/* 하단 스토리 텍스트 */}
+              <AfterSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />
-              <text x="200" y="430" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="18" fontWeight="bold">
-                상담 후
-              </text>
-              <text x="200" y="455" textAnchor="middle" fill={theme.afterAccent} fontFamily="sans-serif" fontSize="13">
-                {theme.healEmoji} {story.afterStory}
-              </text>
-              <text x="200" y="478" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.8">
-                {story.afterScene}
-              </text>
-              <text x="200" y="505" textAnchor="middle" fill="#81c784" fontFamily="sans-serif" fontSize="10" opacity="0.6">
-                어른의 숲 | Forest of Calm
-              </text>
+              <text x="200" y="428" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 후</text>
+              <text x="200" y="453" textAnchor="middle" fill={theme.after.accent} fontFamily="sans-serif" fontSize="13">🌿 {theme.afterTitle}</text>
+              <text x="200" y="476" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.afterScene}</text>
+              <text x="200" y="505" textAnchor="middle" fill="#81c784" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
             </svg>
           </div>
-          <button
-            onClick={() => handleDownload('after')}
-            className="text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
-          >
-            📥 저장
-          </button>
+          <button onClick={() => handleDownload('after')} className="text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors">📥 저장</button>
         </div>
       </div>
 
-      {/* 킬링 메시지 배너 */}
-      {story.killingMessage && (
+      {killingMessage && (
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 sm:p-4 text-center">
           <p className="text-sm sm:text-base font-medium text-green-800 italic">
-            &ldquo;{story.killingMessage}&rdquo;
+            &ldquo;{killingMessage}&rdquo;
           </p>
         </div>
       )}
 
-      {/* 전체 저장 */}
       <div className="text-center">
         <button
-          onClick={async () => {
-            await handleDownload('before');
-            setTimeout(() => handleDownload('after'), 500);
-          }}
+          onClick={async () => { await handleDownload('before'); setTimeout(() => handleDownload('after'), 500); }}
           className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
         >
           📥 전체 저장하기
