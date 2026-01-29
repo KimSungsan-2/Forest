@@ -32,8 +32,9 @@ class PaymentService {
       throw new Error('사용자를 찾을 수 없습니다');
     }
 
-    // 고유한 주문 ID 생성
-    const orderId = `ORDER_${userId}_${Date.now()}_${uuidv4().split('-')[0]}`;
+    // 고유한 주문 ID 생성 (Toss Payments 규칙: 영문, 숫자, -, _ 만 허용, 6-64자)
+    // UUID 형태로 생성하되 하이픈 제거하여 32자로 유지
+    const orderId = `ORDER-${Date.now()}-${uuidv4().replace(/-/g, '').substring(0, 8)}`;
 
     // Payment 레코드 생성 (pending 상태)
     await prisma.payment.create({

@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtPayload } from '../modules/auth/auth.types';
+export type { JwtPayload } from '../modules/auth/auth.types';
 
 /**
  * JWT 인증 미들웨어
