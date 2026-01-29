@@ -27,6 +27,7 @@ export const analyticsApi = {
   async calculate(): Promise<MindWeatherScore> {
     return apiRequest('/api/analytics/calculate', {
       method: 'POST',
+      body: JSON.stringify({}),
     });
   },
 
