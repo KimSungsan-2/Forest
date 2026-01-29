@@ -21,4 +21,9 @@ export async function authRoutes(server: FastifyInstance) {
   server.get('/usage', {
     handler: authController.getUsage.bind(authController),
   });
+
+  // 프로모 코드 입력
+  server.post('/redeem-promo', {
+    handler: authController.redeemPromo.bind(authController),
+  });
 }

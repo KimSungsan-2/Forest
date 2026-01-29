@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { useTossPayments } from '@/lib/hooks/useTossPayments';
+import { apiRequest } from '@/lib/api/client';
 
 export default function PricingPage() {
   const { isLoaded, isProcessing, error, requestPayment } = useTossPayments();
   const [selectedPlan, setSelectedPlan] = useState<'premium' | 'family' | null>(null);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleUpgrade = async (plan: 'premium' | 'family') => {
     setSelectedPlan(plan);
@@ -181,6 +185,55 @@ export default function PricingPage() {
           <p className="text-center text-sm text-gray-600 mt-4">
             14일 무료 체험 가능
           </p>
+        </div>
+      </div>
+
+      {/* 프로모 코드 입력 */}
+      <div className="mt-12 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-3 text-center">
+            프로모 코드가 있으신가요?
+          </h3>
+          <div className="flex space-x-3">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(e.target.value);
+                setPromoMessage(null);
+              }}
+              placeholder="코드를 입력하세요"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            />
+            <button
+              onClick={async () => {
+                if (!promoCode.trim()) return;
+                setPromoLoading(true);
+                setPromoMessage(null);
+                try {
+                  const result = await apiRequest<{ message: string }>('/api/auth/redeem-promo', {
+                    method: 'POST',
+                    body: JSON.stringify({ code: promoCode.trim() }),
+                  });
+                  setPromoMessage({ type: 'success', text: result.message });
+                  setPromoCode('');
+                } catch (err: any) {
+                  setPromoMessage({ type: 'error', text: err.message || '코드 적용에 실패했습니다' });
+                } finally {
+                  setPromoLoading(false);
+                }
+              }}
+              disabled={promoLoading || !promoCode.trim()}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              {promoLoading ? '...' : '적용'}
+            </button>
+          </div>
+          {promoMessage && (
+            <p className={`mt-3 text-sm text-center ${promoMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+              {promoMessage.text}
+            </p>
+          )}
         </div>
       </div>
 

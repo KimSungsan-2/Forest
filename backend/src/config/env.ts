@@ -31,6 +31,9 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_MAX: z.string().transform(Number).default('100'),
   RATE_LIMIT_TIMEWINDOW: z.string().default('1 hour'),
+
+  // Promo Code (쉼표로 구분, 여러 코드 가능)
+  PROMO_CODES: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -53,4 +56,7 @@ export const config = {
   allowedOrigins: parsedEnv.data.ALLOWED_ORIGINS,
   rateLimitMax: parsedEnv.data.RATE_LIMIT_MAX,
   rateLimitTimeWindow: parsedEnv.data.RATE_LIMIT_TIMEWINDOW,
+  promoCodes: parsedEnv.data.PROMO_CODES
+    ? parsedEnv.data.PROMO_CODES.split(',').map((c) => c.trim())
+    : [],
 };
