@@ -10,6 +10,7 @@ import {
 import { getAuthUser } from '../../middleware/auth';
 import { prisma } from '../../config/database';
 import { EmotionTag } from './ai/prompts';
+import { buildPastContextPrompt } from './ai/contextRetriever';
 
 export class ReflectionController {
   /**
@@ -185,6 +186,14 @@ export class ReflectionController {
         },
       ];
 
+      // 과거 회고 맥락 검색 (RAG Phase 1)
+      const pastContext = await buildPastContextPrompt(
+        user.userId,
+        body.content,
+        reflection.emotionalTone || undefined,
+        body.reflectionId,
+      );
+
       // SSE 헤더 설정
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -202,7 +211,8 @@ export class ReflectionController {
           fullResponse += chunk;
           // SSE 형식으로 청크 전송
           reply.raw.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
-        }
+        },
+        pastContext
       );
 
       // 완료 이벤트

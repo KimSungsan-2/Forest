@@ -42,14 +42,16 @@ export class ClaudeClient {
   async streamReframingResponse(
     messages: Message[],
     emotion?: EmotionTag,
-    onChunk?: (text: string) => void
+    onChunk?: (text: string) => void,
+    pastContext?: string
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
 
     const systemPrompt =
       COGNITIVE_REFRAMING_SYSTEM_PROMPT +
       (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
-      (emotion ? getEmotionSpecificPrompt(emotion) : '');
+      (emotion ? getEmotionSpecificPrompt(emotion) : '') +
+      (pastContext || '');
 
     let fullText = '';
     let inputTokens = 0;
@@ -94,14 +96,16 @@ export class ClaudeClient {
    */
   async getReframingResponse(
     messages: Message[],
-    emotion?: EmotionTag
+    emotion?: EmotionTag,
+    pastContext?: string
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
 
     const systemPrompt =
       COGNITIVE_REFRAMING_SYSTEM_PROMPT +
       (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
-      (emotion ? getEmotionSpecificPrompt(emotion) : '');
+      (emotion ? getEmotionSpecificPrompt(emotion) : '') +
+      (pastContext || '');
 
     const response = await anthropic.messages.create({
       model: MODEL,

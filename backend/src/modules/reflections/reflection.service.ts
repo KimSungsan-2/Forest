@@ -8,6 +8,7 @@ import {
   ReflectionListQuery,
 } from './reflection.types';
 import { EmotionTag } from './ai/prompts';
+import { buildPastContextPrompt } from './ai/contextRetriever';
 
 export class ReflectionService {
   /**
@@ -80,10 +81,18 @@ export class ReflectionService {
       },
     });
 
+    // 과거 회고 맥락 검색 (RAG Phase 1)
+    const pastContext = await buildPastContextPrompt(
+      userId,
+      data.content,
+      data.emotionTag || emotionAnalysis.emotionalTone,
+    );
+
     // AI 응답 생성
     const aiResponseData = await claudeClient.getReframingResponse(
       [{ role: 'user', content: data.content }],
-      data.emotionTag as EmotionTag
+      data.emotionTag as EmotionTag,
+      pastContext
     );
 
     // AI 응답 저장
@@ -150,10 +159,19 @@ export class ReflectionService {
       },
     ];
 
+    // 과거 회고 맥락 검색 (RAG Phase 1)
+    const pastContext = await buildPastContextPrompt(
+      userId,
+      data.content,
+      reflection.emotionalTone || undefined,
+      data.reflectionId,
+    );
+
     // AI 응답 생성
     const aiResponseData = await claudeClient.getReframingResponse(
       messages,
-      reflection.emotionalTone as EmotionTag
+      reflection.emotionalTone as EmotionTag,
+      pastContext
     );
 
     // AI 응답 저장
