@@ -1,10 +1,12 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 
 interface CounselingResultCardsProps {
   emotion?: string;
   emotionEmoji?: string;
+  userContent?: string;
+  aiContent?: string;
 }
 
 function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string) {
@@ -43,20 +45,121 @@ function renderCardToCanvas(
 
 // 감정별 색상 테마
 function getEmotionTheme(emotion?: string) {
-  const themes: Record<string, { bg1: string; bg2: string; accent: string; rain: string; label: string }> = {
-    죄책감: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6', rain: '#5a7ea6', label: '무거운 마음' },
-    분노: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#c0392b', rain: '#e74c3c', label: '타오르는 감정' },
-    피로: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d', rain: '#95a5a6', label: '지친 하루' },
-    불안: { bg1: '#1a2e2e', bg2: '#163e3e', accent: '#1abc9c', rain: '#48c9b0', label: '불안한 마음' },
-    슬픔: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#3498db', rain: '#5dade2', label: '흐린 마음' },
-    좌절: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017', rain: '#f1c40f', label: '막막한 순간' },
-    압도됨: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad', rain: '#a569bd', label: '벅찬 감정' },
-    외로움: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e', rain: '#5d6d7e', label: '혼자인 기분' },
+  const themes: Record<string, {
+    bg1: string; bg2: string; accent: string; rain: string; label: string;
+    afterBg1: string; afterBg2: string; afterAccent: string;
+    sceneEmoji: string; healEmoji: string;
+  }> = {
+    죄책감: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#5a7ea6', rain: '#5a7ea6', label: '무거운 마음',
+      afterBg1: '#e8f5e9', afterBg2: '#c8e6c9', afterAccent: '#66bb6a', sceneEmoji: '😔', healEmoji: '🌱' },
+    분노: { bg1: '#2e1a1a', bg2: '#3e1616', accent: '#c0392b', rain: '#e74c3c', label: '타오르는 감정',
+      afterBg1: '#fff3e0', afterBg2: '#ffe0b2', afterAccent: '#ff9800', sceneEmoji: '🔥', healEmoji: '🕊️' },
+    피로: { bg1: '#1a1a2e', bg2: '#2d2d44', accent: '#7f8c8d', rain: '#95a5a6', label: '지친 하루',
+      afterBg1: '#f3e5f5', afterBg2: '#e1bee7', afterAccent: '#ab47bc', sceneEmoji: '😩', healEmoji: '☕' },
+    불안: { bg1: '#1a2e2e', bg2: '#163e3e', accent: '#1abc9c', rain: '#48c9b0', label: '불안한 마음',
+      afterBg1: '#e0f7fa', afterBg2: '#b2ebf2', afterAccent: '#26c6da', sceneEmoji: '🌊', healEmoji: '🌤️' },
+    슬픔: { bg1: '#1a1a3e', bg2: '#16163e', accent: '#3498db', rain: '#5dade2', label: '흐린 마음',
+      afterBg1: '#e8eaf6', afterBg2: '#c5cae9', afterAccent: '#5c6bc0', sceneEmoji: '🌧️', healEmoji: '🌈' },
+    좌절: { bg1: '#2e2e1a', bg2: '#3e3e16', accent: '#d4a017', rain: '#f1c40f', label: '막막한 순간',
+      afterBg1: '#fff8e1', afterBg2: '#ffecb3', afterAccent: '#ffc107', sceneEmoji: '🧱', healEmoji: '🌻' },
+    압도됨: { bg1: '#2e1a2e', bg2: '#3e163e', accent: '#8e44ad', rain: '#a569bd', label: '벅찬 감정',
+      afterBg1: '#fce4ec', afterBg2: '#f8bbd0', afterAccent: '#ec407a', sceneEmoji: '🌀', healEmoji: '🦋' },
+    외로움: { bg1: '#1a1a2e', bg2: '#16213e', accent: '#34495e', rain: '#5d6d7e', label: '혼자인 기분',
+      afterBg1: '#e0f2f1', afterBg2: '#b2dfdb', afterAccent: '#26a69a', sceneEmoji: '🌙', healEmoji: '🤝' },
   };
   return themes[emotion || ''] || themes['죄책감'];
 }
 
-export default function CounselingResultCards({ emotion, emotionEmoji }: CounselingResultCardsProps) {
+// 사용자 내용에서 스토리 요약 추출
+function extractStory(userContent?: string, aiContent?: string, emotion?: string) {
+  const content = userContent || '';
+  const ai = aiContent || '';
+
+  // 사용자 내용에서 핵심 키워드 추출
+  const keywords = {
+    child: content.match(/아이|아들|딸|애|우리\s*애/) ? true : false,
+    yelling: content.match(/소리|화[를을]?\s*[냈내]|짜증|폭발/) ? true : false,
+    tired: content.match(/피곤|지[쳐치]|힘[들든]|지침|번아웃/) ? true : false,
+    guilt: content.match(/죄책|미안|잘못|후회|자책/) ? true : false,
+    work: content.match(/일|직장|회사|출근|퇴근|워킹/) ? true : false,
+    sleep: content.match(/잠|수면|밤|깨[서]?|안\s*자/) ? true : false,
+    food: content.match(/밥|안\s*먹|편식|식사/) ? true : false,
+    screen: content.match(/TV|영상|유튜브|스크린|핸드폰|스마트폰/) ? true : false,
+    fighting: content.match(/싸[우움]|다[퉈투]|갈등|남편|아내|배우자/) ? true : false,
+    lonely: content.match(/혼자|외[롭로]|고립/) ? true : false,
+  };
+
+  // AI 킬링 문장 추출
+  const killingMatch = ai.match(/==([^=]+)==/);
+  const killingMessage = killingMatch ? killingMatch[1].trim() : '당신은 이미 충분히 좋은 부모입니다';
+
+  // 상담 전 스토리 생성
+  let beforeStory = '';
+  let afterStory = '';
+  let beforeScene = '폭풍우 속 혼자 서 있는 밤';
+  let afterScene = '따뜻한 햇살이 비추는 숲';
+
+  if (keywords.yelling) {
+    beforeStory = '소리친 후 밀려오는 자책감';
+    afterStory = '회복할 줄 아는 부모의 용기';
+    beforeScene = '폭풍우 속 웅크린 밤';
+    afterScene = '사과와 포옹이 피어나는 아침';
+  } else if (keywords.tired) {
+    beforeStory = '끝없는 피로에 잠긴 하루';
+    afterStory = '쉬어도 된다는 허락';
+    beforeScene = '무거운 안개에 갇힌 저녁';
+    afterScene = '안개가 걷히며 보이는 따뜻한 빛';
+  } else if (keywords.work) {
+    beforeStory = '일과 육아 사이에서 찢기는 마음';
+    afterStory = '노력하는 어른의 아름다운 모습';
+    beforeScene = '출근길 뒤돌아보는 발걸음';
+    afterScene = '퇴근 후 눈 맞추는 10분의 기적';
+  } else if (keywords.sleep) {
+    beforeStory = '잠 못 드는 밤의 고단함';
+    afterStory = '뇌가 자라는 소리';
+    beforeScene = '깜깜한 새벽 홀로 깨어있는 시간';
+    afterScene = '아이와 함께 맞이하는 햇살';
+  } else if (keywords.food) {
+    beforeStory = '밥 한 숟갈의 전쟁';
+    afterStory = '자율성이 자라나는 식탁';
+    beforeScene = '뿌리치는 숟가락 앞의 답답함';
+    afterScene = '스스로 집어먹는 작은 손';
+  } else if (keywords.screen) {
+    beforeStory = '스크린 앞에 아이를 둔 죄책감';
+    afterStory = '생존 전략이자 지혜로운 선택';
+    beforeScene = '어두운 방 화면빛만 비추는 저녁';
+    afterScene = '함께 보며 대화하는 시간';
+  } else if (keywords.fighting) {
+    beforeStory = '아이 앞에서의 갈등';
+    afterStory = '화해를 보여주는 것도 교육';
+    beforeScene = '팽팽한 공기 속 얼어붙은 아이';
+    afterScene = '손을 잡고 함께 웃는 가족';
+  } else if (keywords.lonely) {
+    beforeStory = '혼자 감당하는 무게';
+    afterStory = '도움을 요청하는 용기';
+    beforeScene = '텅 빈 방에 울리는 아이 울음';
+    afterScene = '누군가와 나누는 따뜻한 대화';
+  } else if (keywords.guilt) {
+    beforeStory = '자책의 소용돌이';
+    afterStory = '자책은 사랑의 증거';
+    beforeScene = '어둠 속 자신을 탓하는 밤';
+    afterScene = '사랑으로 다시 일어서는 아침';
+  } else {
+    beforeStory = emotion ? `${emotion}에 잠긴 하루` : '힘겨운 하루의 무게';
+    afterStory = '마음의 짐을 내려놓는 순간';
+    beforeScene = '어둠 속 홀로 걷는 길';
+    afterScene = '숲에서 찾은 따뜻한 쉼터';
+  }
+
+  // 킬링 메시지를 30자로 자르기
+  const shortKilling = killingMessage.length > 30
+    ? killingMessage.substring(0, 28) + '...'
+    : killingMessage;
+
+  return { beforeStory, afterStory, beforeScene, afterScene, killingMessage: shortKilling };
+}
+
+export default function CounselingResultCards({ emotion, emotionEmoji, userContent, aiContent }: CounselingResultCardsProps) {
   const beforeSvgRef = useRef<SVGSVGElement>(null);
   const afterSvgRef = useRef<SVGSVGElement>(null);
 
@@ -76,17 +179,22 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
   const emotionLabel = emotion || '힘듦';
   const emoji = emotionEmoji || '😔';
 
+  const story = useMemo(
+    () => extractStory(userContent, aiContent, emotion),
+    [userContent, aiContent, emotion]
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="text-center space-y-1">
-        <h3 className="text-lg font-bold text-gray-800">나의 상담 전 &middot; 후</h3>
-        <p className="text-sm text-gray-500">숲의 상담사가 그린 당신의 마음 여정</p>
+        <h3 className="text-base sm:text-lg font-bold text-gray-800">나의 상담 전 · 후</h3>
+        <p className="text-xs sm:text-sm text-gray-500">숲의 상담사가 그린 당신의 마음 여정</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* ===== 상담 전 카드 ===== */}
-        <div className="flex flex-col items-center space-y-3">
-          <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full">
             <svg
               ref={beforeSvgRef}
               xmlns="http://www.w3.org/2000/svg"
@@ -121,15 +229,12 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
               <ellipse cx="100" cy="100" rx="70" ry="35" fill="url(#cloudGray)" opacity="0.8">
                 <animate attributeName="cx" values="100;115;100" dur="6s" repeatCount="indefinite" />
               </ellipse>
-              <ellipse cx="180" cy="80" rx="60" ry="30" fill="url(#cloudGray)" opacity="0.9">
-                <animate attributeName="cx" values="180;195;180" dur="7s" repeatCount="indefinite" />
-              </ellipse>
-              <ellipse cx="300" cy="110" rx="55" ry="28" fill="url(#cloudGray)" opacity="0.7">
-                <animate attributeName="cx" values="300;285;300" dur="5.5s" repeatCount="indefinite" />
+              <ellipse cx="250" cy="85" rx="60" ry="30" fill="url(#cloudGray)" opacity="0.9">
+                <animate attributeName="cx" values="250;265;250" dur="7s" repeatCount="indefinite" />
               </ellipse>
 
               {/* 비 */}
-              {[60, 110, 160, 210, 260, 310, 350].map((x, i) => (
+              {[60, 130, 200, 270, 340].map((x, i) => (
                 <line
                   key={`rain-${i}`}
                   x1={x}
@@ -142,90 +247,71 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
                 >
                   <animate
                     attributeName="y1"
-                    values={`${140 + i * 4};${320 + i * 3};${140 + i * 4}`}
+                    values={`${140 + i * 4};${300 + i * 3};${140 + i * 4}`}
                     dur={`${1.2 + i * 0.15}s`}
                     repeatCount="indefinite"
                   />
                   <animate
                     attributeName="y2"
-                    values={`${158 + i * 4};${338 + i * 3};${158 + i * 4}`}
+                    values={`${158 + i * 4};${318 + i * 3};${158 + i * 4}`}
                     dur={`${1.2 + i * 0.15}s`}
                     repeatCount="indefinite"
                   />
                 </line>
               ))}
 
-              {/* 바닥 풀 (시든) */}
-              {[40, 100, 180, 280, 350].map((x, i) => (
-                <line key={`wilt-${i}`} x1={x} y1={395} x2={x + (i % 2 === 0 ? -8 : 8)} y2={378} stroke="#3d5a3d" strokeWidth="2" opacity="0.4" />
-              ))}
-
               {/* 캐릭터 - 웅크린 모습 */}
-              <g transform="translate(200, 295)">
-                {/* 그림자 */}
+              <g transform="translate(200, 270)">
                 <ellipse cx="0" cy="95" rx="50" ry="8" fill="#000" opacity="0.15" />
-                {/* 몸 */}
                 <ellipse cx="0" cy="45" rx="48" ry="45" fill="#e0cdb0" />
-                {/* 머리 */}
                 <circle cx="0" cy="-10" r="38" fill="#f0dcc5" />
-                {/* 머리카락 */}
                 <path d="M-30,-35 Q-15,-55 0,-48 Q15,-55 30,-35" stroke="#8b7355" strokeWidth="6" fill="none" />
-                {/* 눈 (감긴) */}
                 <path d="M-16,-16 Q-10,-11 -4,-16" stroke="#666" strokeWidth="2.5" fill="none" />
                 <path d="M4,-16 Q10,-11 16,-16" stroke="#666" strokeWidth="2.5" fill="none" />
-                {/* 눈물 */}
                 <ellipse cx="-13" cy="-6" rx="3" ry="5" fill={theme.accent} opacity="0.7">
                   <animate attributeName="cy" values="-6;8;-6" dur="2.5s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.7;0;0.7" dur="2.5s" repeatCount="indefinite" />
                 </ellipse>
-                <ellipse cx="13" cy="-3" rx="2.5" ry="4" fill={theme.accent} opacity="0.5">
-                  <animate attributeName="cy" values="-3;10;-3" dur="3s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite" />
-                </ellipse>
-                {/* 입 (슬픈) */}
                 <path d="M-8,2 Q0,8 8,2" stroke="#888" strokeWidth="2" fill="none" />
-                {/* 팔 (몸을 감싸는) */}
                 <path d="M-38,15 Q-48,45 -15,55" stroke="#e0cdb0" strokeWidth="14" fill="none" strokeLinecap="round" />
                 <path d="M38,15 Q48,45 15,55" stroke="#e0cdb0" strokeWidth="14" fill="none" strokeLinecap="round" />
-                {/* 무릎 */}
                 <ellipse cx="-18" cy="75" rx="18" ry="14" fill="#e0cdb0" />
                 <ellipse cx="18" cy="75" rx="18" ry="14" fill="#e0cdb0" />
               </g>
 
-              {/* 감정 아이콘 (떠다니는) */}
-              <text x="80" y="220" fontSize="28" opacity="0.3" filter="url(#glow)">
-                <animate attributeName="y" values="220;210;220" dur="3s" repeatCount="indefinite" />
-                {emoji}
-              </text>
-              <text x="300" y="240" fontSize="22" opacity="0.2">
-                <animate attributeName="y" values="240;230;240" dur="4s" repeatCount="indefinite" />
-                💭
+              {/* 감정 아이콘 */}
+              <text x="80" y="210" fontSize="28" opacity="0.3" filter="url(#glow)">
+                <animate attributeName="y" values="210;200;210" dur="3s" repeatCount="indefinite" />
+                {theme.sceneEmoji}
               </text>
 
-              {/* 하단 텍스트 영역 */}
-              <rect x="0" y="420" width="400" height="100" fill="#111827" opacity="0.5" />
-              <text x="200" y="455" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="20" fontWeight="bold">
+              {/* 하단 스토리 텍스트 */}
+              <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
+              <text x="200" y="430" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="18" fontWeight="bold">
                 상담 전
               </text>
-              <text x="200" y="480" textAnchor="middle" fill={theme.accent} fontFamily="sans-serif" fontSize="14">
-                {emoji} {theme.label}
+              <text x="200" y="455" textAnchor="middle" fill={theme.accent} fontFamily="sans-serif" fontSize="13">
+                {emoji} {story.beforeStory}
               </text>
-              <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="11" opacity="0.7">
+              <text x="200" y="478" textAnchor="middle" fill="#9ca3af" fontFamily="sans-serif" fontSize="11" opacity="0.8">
+                {story.beforeScene}
+              </text>
+              <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="10" opacity="0.6">
                 어른의 숲 | Forest of Calm
               </text>
             </svg>
           </div>
           <button
             onClick={() => handleDownload('before')}
-            className="text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors"
+            className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors"
           >
-            📥 저장하기
+            📥 저장
           </button>
         </div>
 
         {/* ===== 상담 후 카드 ===== */}
-        <div className="flex flex-col items-center space-y-3">
-          <div className="relative rounded-2xl overflow-hidden shadow-lg border border-green-200">
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full">
             <svg
               ref={afterSvgRef}
               xmlns="http://www.w3.org/2000/svg"
@@ -236,9 +322,9 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
             >
               <defs>
                 <linearGradient id="bgAfter" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#e8f5e9" />
-                  <stop offset="40%" stopColor="#c8e6c9" />
-                  <stop offset="100%" stopColor="#a5d6a7" />
+                  <stop offset="0%" stopColor={theme.afterBg1} />
+                  <stop offset="40%" stopColor={theme.afterBg2} />
+                  <stop offset="100%" stopColor={theme.afterAccent} stopOpacity="0.3" />
                 </linearGradient>
                 <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#fff9c4" />
@@ -248,13 +334,8 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
                   <stop offset="0%" stopColor="#fff9c4" stopOpacity="0.6" />
                   <stop offset="100%" stopColor="#fff9c4" stopOpacity="0" />
                 </radialGradient>
-                <radialGradient id="warmGlow" cx="50%" cy="30%" r="60%">
-                  <stop offset="0%" stopColor="#fffde7" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#fffde7" stopOpacity="0" />
-                </radialGradient>
               </defs>
               <rect width="400" height="520" fill="url(#bgAfter)" />
-              <rect width="400" height="520" fill="url(#warmGlow)" />
 
               {/* 태양 */}
               <circle cx="320" cy="75" r="65" fill="url(#sunRay)">
@@ -264,7 +345,7 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
                 <animate attributeName="r" values="32;35;32" dur="2.5s" repeatCount="indefinite" />
               </circle>
               {/* 햇살 */}
-              {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
+              {[0, 60, 120, 180, 240, 300].map((angle, i) => {
                 const rad = (angle * Math.PI) / 180;
                 const x1 = 320 + Math.cos(rad) * 40;
                 const y1 = 75 + Math.sin(rad) * 40;
@@ -287,159 +368,112 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
                 </ellipse>
               </g>
 
-              {/* 무지개 (은은한) */}
-              <path d="M50,180 Q200,60 350,180" fill="none" stroke="#ef5350" strokeWidth="3" opacity="0.15" />
-              <path d="M55,185 Q200,68 345,185" fill="none" stroke="#ff9800" strokeWidth="3" opacity="0.12" />
-              <path d="M60,190 Q200,76 340,190" fill="none" stroke="#ffeb3b" strokeWidth="3" opacity="0.10" />
-              <path d="M65,195 Q200,84 335,195" fill="none" stroke="#4caf50" strokeWidth="3" opacity="0.12" />
-              <path d="M70,200 Q200,92 330,200" fill="none" stroke="#2196f3" strokeWidth="3" opacity="0.10" />
+              {/* 무지개 */}
+              <path d="M50,170 Q200,60 350,170" fill="none" stroke="#ef5350" strokeWidth="3" opacity="0.12" />
+              <path d="M55,175 Q200,68 345,175" fill="none" stroke="#ff9800" strokeWidth="3" opacity="0.10" />
+              <path d="M60,180 Q200,76 340,180" fill="none" stroke="#4caf50" strokeWidth="3" opacity="0.10" />
 
-              {/* 나무들 */}
-              <g transform="translate(50, 340)">
+              {/* 나무 */}
+              <g transform="translate(55, 330)">
                 <rect x="-6" y="0" width="12" height="35" fill="#795548" rx="3" />
                 <circle cx="0" cy="-12" r="22" fill="#66bb6a" />
-                <circle cx="-12" cy="-2" r="15" fill="#43a047" />
               </g>
-              <g transform="translate(355, 330)">
-                <rect x="-7" y="0" width="14" height="40" fill="#6d4c41" rx="3" />
-                <circle cx="0" cy="-15" r="28" fill="#4caf50" />
-                <circle cx="-14" cy="-4" r="18" fill="#388e3c" />
-                <circle cx="14" cy="-4" r="18" fill="#43a047" />
+              <g transform="translate(350, 325)">
+                <rect x="-7" y="0" width="14" height="38" fill="#6d4c41" rx="3" />
+                <circle cx="0" cy="-15" r="26" fill="#4caf50" />
               </g>
 
               {/* 꽃들 */}
-              {[80, 150, 240, 320].map((x, i) => (
-                <g key={`flower-${i}`} transform={`translate(${x}, 388)`}>
-                  <line x1="0" y1="0" x2="0" y2="25" stroke="#66bb6a" strokeWidth="2.5" />
-                  <ellipse cx="-5" cy="12" rx="6" ry="3" fill="#81c784" transform="rotate(-30)" />
-                  <circle cx="0" cy="-5" r={7 + (i % 2)} fill={['#ef5350', '#ba68c8', '#ffa726', '#ec407a'][i]}>
-                    <animate attributeName="r" values={`${7 + (i % 2)};${8 + (i % 2)};${7 + (i % 2)}`} dur={`${2 + i * 0.4}s`} repeatCount="indefinite" />
+              {[100, 200, 300].map((x, i) => (
+                <g key={`flower-${i}`} transform={`translate(${x}, 380)`}>
+                  <line x1="0" y1="0" x2="0" y2="20" stroke="#66bb6a" strokeWidth="2.5" />
+                  <circle cx="0" cy="-5" r={6 + (i % 2)} fill={['#ef5350', '#ba68c8', '#ffa726'][i]}>
+                    <animate attributeName="r" values={`${6 + (i % 2)};${7 + (i % 2)};${6 + (i % 2)}`} dur={`${2 + i * 0.4}s`} repeatCount="indefinite" />
                   </circle>
-                  <circle cx="0" cy="-5" r="3" fill="#fff9c4" />
+                  <circle cx="0" cy="-5" r="2.5" fill="#fff9c4" />
                 </g>
               ))}
 
-              {/* 나비 1 */}
-              <g>
-                <animateTransform attributeName="transform" type="translate" values="75,200;90,185;110,195;75,200" dur="6s" repeatCount="indefinite" />
-                <ellipse cx="-7" cy="0" rx="7" ry="4.5" fill="#ba68c8" opacity="0.8">
-                  <animate attributeName="rx" values="7;2;7" dur="0.4s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="7" cy="0" rx="7" ry="4.5" fill="#ba68c8" opacity="0.8">
-                  <animate attributeName="rx" values="7;2;7" dur="0.4s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="0" cy="0" rx="1.5" ry="4" fill="#4a148c" />
-              </g>
-              {/* 나비 2 */}
-              <g>
-                <animateTransform attributeName="transform" type="translate" values="280,170;300,160;310,175;280,170" dur="7s" repeatCount="indefinite" />
-                <ellipse cx="-6" cy="0" rx="6" ry="4" fill="#ffab91" opacity="0.7">
-                  <animate attributeName="rx" values="6;2;6" dur="0.5s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="6" cy="0" rx="6" ry="4" fill="#ffab91" opacity="0.7">
-                  <animate attributeName="rx" values="6;2;6" dur="0.5s" repeatCount="indefinite" />
-                </ellipse>
-                <ellipse cx="0" cy="0" rx="1" ry="3" fill="#bf360c" />
-              </g>
-
-              {/* 캐릭터 - 밝고 활기찬 모습 */}
-              <g transform="translate(200, 275)">
-                {/* 그림자 (밝은) */}
+              {/* 캐릭터 - 밝은 모습 */}
+              <g transform="translate(200, 265)">
                 <ellipse cx="0" cy="105" rx="45" ry="7" fill="#388e3c" opacity="0.1" />
-                {/* 몸 */}
                 <ellipse cx="0" cy="45" rx="48" ry="45" fill="#f5e6d3" />
-                {/* 머리 */}
                 <circle cx="0" cy="-10" r="38" fill="#f5e6d3" />
-                {/* 머리카락 */}
                 <path d="M-30,-35 Q-15,-55 0,-48 Q15,-55 30,-35" stroke="#8b7355" strokeWidth="6" fill="none" />
-                {/* 볼 터치 */}
                 <circle cx="-20" cy="0" r="7" fill="#ffab91" opacity="0.45" />
                 <circle cx="20" cy="0" r="7" fill="#ffab91" opacity="0.45" />
-                {/* 눈 (반짝이는) */}
                 <circle cx="-12" cy="-14" r="5" fill="#333" />
                 <circle cx="12" cy="-14" r="5" fill="#333" />
                 <circle cx="-10" cy="-15.5" r="2" fill="white" />
                 <circle cx="14" cy="-15.5" r="2" fill="white" />
-                <circle cx="-13" cy="-12.5" r="1" fill="white" opacity="0.6" />
-                <circle cx="11" cy="-12.5" r="1" fill="white" opacity="0.6" />
-                {/* 입 (활짝 미소) */}
                 <path d="M-12,4 Q0,18 12,4" stroke="#555" strokeWidth="2.5" fill="none" />
-                {/* 팔 (활짝 펼친) */}
                 <path d="M-38,15 Q-65,-15 -75,-40" stroke="#f5e6d3" strokeWidth="14" fill="none" strokeLinecap="round">
                   <animate attributeName="d" values="M-38,15 Q-65,-15 -75,-40;M-38,15 Q-68,-20 -80,-45;M-38,15 Q-65,-15 -75,-40" dur="3s" repeatCount="indefinite" />
                 </path>
                 <path d="M38,15 Q65,-15 75,-40" stroke="#f5e6d3" strokeWidth="14" fill="none" strokeLinecap="round">
                   <animate attributeName="d" values="M38,15 Q65,-15 75,-40;M38,15 Q68,-20 80,-45;M38,15 Q65,-15 75,-40" dur="3s" repeatCount="indefinite" />
                 </path>
-                {/* 손 */}
                 <circle cx="-75" cy="-40" r="7" fill="#f5e6d3" />
                 <circle cx="75" cy="-40" r="7" fill="#f5e6d3" />
-                {/* 하트 (머리 위) */}
+                {/* 하트 */}
                 <g transform="translate(0, -65)">
                   <path d="M0,-10 C-6,-20 -18,-20 -18,-10 C-18,0 0,14 0,14 C0,14 18,0 18,-10 C18,-20 6,-20 0,-10Z" fill="#ef5350" opacity="0.85">
                     <animate attributeName="opacity" values="0.85;0.5;0.85" dur="1.5s" repeatCount="indefinite" />
                     <animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="1.5s" repeatCount="indefinite" />
                   </path>
                 </g>
-                {/* 작은 반짝임 효과 */}
+                {/* 반짝임 */}
                 <text x="-55" y="-50" fontSize="16" opacity="0.6">
                   <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
-                  ✨
-                </text>
-                <text x="45" y="-55" fontSize="14" opacity="0.5">
-                  <animate attributeName="opacity" values="0;0.5;0" dur="2.5s" repeatCount="indefinite" />
-                  ✨
+                  {theme.healEmoji}
                 </text>
               </g>
 
-              {/* 떠다니는 꽃잎 */}
-              {[0, 1, 2].map((i) => (
-                <ellipse
-                  key={`petal-${i}`}
-                  rx="4"
-                  ry="6"
-                  fill={['#f8bbd0', '#c8e6c9', '#ffe0b2'][i]}
-                  opacity="0.5"
-                  transform={`rotate(${i * 30})`}
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="translate"
-                    values={`${120 + i * 80},${150 + i * 20};${130 + i * 80},${250 + i * 15};${120 + i * 80},${150 + i * 20}`}
-                    dur={`${4 + i}s`}
-                    repeatCount="indefinite"
-                  />
-                </ellipse>
-              ))}
-
-              {/* 새 */}
+              {/* 나비 */}
               <g>
-                <animateTransform attributeName="transform" type="translate" values="60,130;80,120;100,130;60,130" dur="8s" repeatCount="indefinite" />
-                <path d="M-8,0 Q0,-6 8,0" stroke="#555" strokeWidth="2" fill="none" />
-                <path d="M-3,0 Q0,-4 3,0" stroke="#555" strokeWidth="2" fill="none" />
+                <animateTransform attributeName="transform" type="translate" values="75,190;95,175;115,185;75,190" dur="6s" repeatCount="indefinite" />
+                <ellipse cx="-6" cy="0" rx="6" ry="4" fill="#ba68c8" opacity="0.7">
+                  <animate attributeName="rx" values="6;2;6" dur="0.4s" repeatCount="indefinite" />
+                </ellipse>
+                <ellipse cx="6" cy="0" rx="6" ry="4" fill="#ba68c8" opacity="0.7">
+                  <animate attributeName="rx" values="6;2;6" dur="0.4s" repeatCount="indefinite" />
+                </ellipse>
+                <ellipse cx="0" cy="0" rx="1" ry="3" fill="#4a148c" />
               </g>
 
-              {/* 하단 텍스트 영역 */}
-              <rect x="0" y="420" width="400" height="100" fill="#1b5e20" opacity="0.12" rx="0" />
-              <text x="200" y="455" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="20" fontWeight="bold">
+              {/* 하단 스토리 텍스트 */}
+              <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />
+              <text x="200" y="430" textAnchor="middle" fill="#2e7d32" fontFamily="sans-serif" fontSize="18" fontWeight="bold">
                 상담 후
               </text>
-              <text x="200" y="480" textAnchor="middle" fill="#43a047" fontFamily="sans-serif" fontSize="14">
-                마음이 한결 가벼워졌어요 🌿
+              <text x="200" y="455" textAnchor="middle" fill={theme.afterAccent} fontFamily="sans-serif" fontSize="13">
+                {theme.healEmoji} {story.afterStory}
               </text>
-              <text x="200" y="505" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.7">
+              <text x="200" y="478" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.8">
+                {story.afterScene}
+              </text>
+              <text x="200" y="505" textAnchor="middle" fill="#81c784" fontFamily="sans-serif" fontSize="10" opacity="0.6">
                 어른의 숲 | Forest of Calm
               </text>
             </svg>
           </div>
           <button
             onClick={() => handleDownload('after')}
-            className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
+            className="text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
           >
-            📥 저장하기
+            📥 저장
           </button>
         </div>
       </div>
+
+      {/* 킬링 메시지 배너 */}
+      {story.killingMessage && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 sm:p-4 text-center">
+          <p className="text-sm sm:text-base font-medium text-green-800 italic">
+            &ldquo;{story.killingMessage}&rdquo;
+          </p>
+        </div>
+      )}
 
       {/* 전체 저장 */}
       <div className="text-center">
@@ -448,7 +482,7 @@ export default function CounselingResultCards({ emotion, emotionEmoji }: Counsel
             await handleDownload('before');
             setTimeout(() => handleDownload('after'), 500);
           }}
-          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg text-sm"
+          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
         >
           📥 전체 저장하기
         </button>
