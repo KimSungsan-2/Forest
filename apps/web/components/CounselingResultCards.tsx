@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useCallback, useMemo, useState } from 'react';
+import { useRef, useCallback, useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface CounselingResultCardsProps {
   emotion?: string;
@@ -882,6 +883,9 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
   const beforeSvgRef = useRef<SVGSVGElement>(null);
   const afterSvgRef = useRef<SVGSVGElement>(null);
   const [fullscreenType, setFullscreenType] = useState<'before' | 'after' | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handleDownload = useCallback(async (type: 'before' | 'after') => {
     const svgEl = type === 'before' ? beforeSvgRef.current : afterSvgRef.current;
@@ -917,8 +921,14 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* 상담 전 */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setFullscreenType('before')}>
-            <svg ref={beforeSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
+          <div
+            className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-gray-200 w-full cursor-pointer active:scale-[0.98] transition-transform"
+            onClick={() => setFullscreenType('before')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setFullscreenType('before')}
+          >
+            <svg ref={beforeSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block" style={{ pointerEvents: 'none' }}>
               <defs>
                 <linearGradient id="bgBefore" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={theme.before.bg1} />
@@ -961,14 +971,26 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
               <text x="200" y="476" textAnchor="middle" fill="#9ca3af" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.beforeScene}</text>
               <text x="200" y="505" textAnchor="middle" fill="#6b7280" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
             </svg>
+            {/* 클릭 힌트 */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
+              <span className="opacity-0 hover:opacity-100 text-white text-xs bg-black/50 px-3 py-1 rounded-full transition-opacity pointer-events-none">
+                클릭하여 확대
+              </span>
+            </div>
           </div>
           <button onClick={() => handleDownload('before')} className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors">📥 저장</button>
         </div>
 
         {/* 상담 후 */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setFullscreenType('after')}>
-            <svg ref={afterSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block">
+          <div
+            className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-green-200 w-full cursor-pointer active:scale-[0.98] transition-transform"
+            onClick={() => setFullscreenType('after')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setFullscreenType('after')}
+          >
+            <svg ref={afterSvgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520" width="100%" height="auto" className="block" style={{ pointerEvents: 'none' }}>
               <defs>
                 <linearGradient id="bgAfter" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={theme.after.bg1} />
@@ -1034,6 +1056,12 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
               <text x="200" y="476" textAnchor="middle" fill="#66bb6a" fontFamily="sans-serif" fontSize="11" opacity="0.8">{theme.afterScene}</text>
               <text x="200" y="505" textAnchor="middle" fill="#81c784" fontFamily="sans-serif" fontSize="10" opacity="0.6">어른의 숲 | Forest of Calm</text>
             </svg>
+            {/* 클릭 힌트 */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
+              <span className="opacity-0 hover:opacity-100 text-white text-xs bg-black/50 px-3 py-1 rounded-full transition-opacity pointer-events-none">
+                클릭하여 확대
+              </span>
+            </div>
           </div>
           <button onClick={() => handleDownload('after')} className="text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors">📥 저장</button>
         </div>
@@ -1056,10 +1084,11 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
         </button>
       </div>
 
-      {/* 전체 화면 모달 */}
-      {fullscreenType && (
+      {/* 전체 화면 모달 — Portal로 body에 직접 렌더 (CSS stacking context 이슈 방지) */}
+      {mounted && fullscreenType && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 bg-black/85 flex flex-col items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
           onClick={() => setFullscreenType(null)}
         >
           {/* 닫기 버튼 */}
@@ -1202,7 +1231,8 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
           >
             📥 이미지 저장
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
