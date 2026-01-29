@@ -6,6 +6,7 @@ import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag } from '../../../../../shared/types/reflection';
 import VoiceInput from './components/VoiceInput';
 import AiMessageBubble from '@/components/AiMessageBubble';
+import CounselingResultCards from '@/components/CounselingResultCards';
 
 const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'guilt', label: '죄책감', emoji: '😔' },
@@ -240,6 +241,14 @@ export default function VentPage() {
               <AiMessageBubble content={aiResponse} />
             )}
           </div>
+
+          {/* 상담 전/후 애니메이션 카드 */}
+          {!loading && aiResponse && (
+            <CounselingResultCards
+              emotion={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.label : undefined}
+              emotionEmoji={selectedEmotion ? EMOTION_TAGS.find((e) => e.value === selectedEmotion)?.emoji : undefined}
+            />
+          )}
 
           {/* 액션 버튼 */}
           {!loading && aiResponse && (

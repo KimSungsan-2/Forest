@@ -12,7 +12,7 @@ const anthropic = new Anthropic({
 });
 
 const MODEL = 'claude-3-haiku-20240307';
-const MAX_TOKENS = 1024;
+const MAX_TOKENS = 4096;
 
 export interface Message {
   role: 'user' | 'assistant';
