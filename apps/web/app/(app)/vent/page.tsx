@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag } from '../../../../../shared/types/reflection';
 import VoiceInput from './components/VoiceInput';
+import AiMessageBubble from '@/components/AiMessageBubble';
 
 const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'guilt', label: '죄책감', emoji: '😔' },
@@ -177,8 +178,11 @@ export default function VentPage() {
         <div className="space-y-6">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              AI가 응답하고 있습니다
+              {loading ? '숲이 당신의 이야기를 듣고 있어요' : '숲이 전하는 이야기'}
             </h1>
+            <p className="text-gray-500 text-sm">
+              {loading ? '잠시만 기다려 주세요...' : '당신을 위한 따뜻한 메시지입니다'}
+            </p>
           </div>
 
           {/* 사용자 메시지 */}
@@ -196,25 +200,24 @@ export default function VentPage() {
           </div>
 
           {/* AI 응답 */}
-          <div className="bg-green-50 rounded-xl p-6 border border-green-200 min-h-[200px]">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white text-xl">
-                  🌲
+          <div className="min-h-[200px]">
+            {loading ? (
+              <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-6 border border-green-200/60">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xl shadow-md">
+                    🌲
+                  </div>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <span className="text-sm text-green-600 ml-2">숲이 당신의 이야기를 듣고 있어요...</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1">
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce delay-200"></div>
-                  </div>
-                ) : (
-                  <p className="text-gray-800 whitespace-pre-wrap">{aiResponse}</p>
-                )}
-              </div>
-            </div>
+            ) : (
+              <AiMessageBubble content={aiResponse} />
+            )}
           </div>
 
           {/* 액션 버튼 */}

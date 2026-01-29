@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
 import type { Reflection, Conversation } from '../../../../../../shared/types/reflection';
+import AiMessageBubble from '@/components/AiMessageBubble';
 
 export default function ReflectionDetailPage() {
   const params = useParams();
@@ -189,41 +190,36 @@ export default function ReflectionDetailPage() {
       {/* 대화 내역 */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 max-h-[600px] overflow-y-auto">
         <div className="space-y-6">
-          {conversations.map((conversation, index) => (
+          {conversations.map((conversation) => (
             <div
               key={conversation.id}
               className={`flex ${
                 conversation.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              <div
-                className={`max-w-[80%] ${
-                  conversation.role === 'user'
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-green-50 border-green-200'
-                } rounded-xl p-4 border`}
-              >
-                <div className="flex items-start space-x-3">
-                  {conversation.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-lg">
-                      🌲
+              {conversation.role === 'assistant' ? (
+                <AiMessageBubble
+                  content={conversation.content}
+                  timestamp={formatTime(conversation.timestamp)}
+                  className="max-w-[80%]"
+                />
+              ) : (
+                <div className="max-w-[80%] bg-blue-50 border-blue-200 rounded-xl p-4 border">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-1">
+                      <p className="text-gray-800 whitespace-pre-wrap">
+                        {conversation.content}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {formatTime(conversation.timestamp)}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-gray-800 whitespace-pre-wrap">
-                      {conversation.content}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {formatTime(conversation.timestamp)}
-                    </p>
-                  </div>
-                  {conversation.role === 'user' && (
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       나
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
           <div ref={messagesEndRef} />
