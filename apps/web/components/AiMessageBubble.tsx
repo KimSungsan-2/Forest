@@ -76,14 +76,15 @@ export default function AiMessageBubble({
           <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
             {parts.map((part, index) =>
               part.highlighted ? (
-                <span
+                <blockquote
                   key={index}
-                  className="inline bg-gradient-to-r from-green-100 to-emerald-100
-                    px-1.5 py-0.5 rounded-md text-green-900 font-semibold text-lg
-                    border-l-4 border-green-400 animate-highlight-glow"
+                  className="my-3 pl-4 py-3 pr-3 border-l-4 border-green-400
+                    bg-gradient-to-r from-green-100/80 to-emerald-50/50 rounded-r-lg
+                    text-green-900 font-semibold text-lg leading-relaxed
+                    animate-highlight-glow not-italic"
                 >
-                  {part.text}
-                </span>
+                  &ldquo;{part.text}&rdquo;
+                </blockquote>
               ) : (
                 <span key={index}>{part.text}</span>
               )
