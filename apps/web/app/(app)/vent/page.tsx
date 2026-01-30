@@ -36,31 +36,56 @@ interface InteractiveElement {
   placeholder?: string;
 }
 
+/**
+ * 한국어 평서문/제안문 감지 — CHOICE 옵션으로 부적절한 문장 필터링
+ * 실제 답변 옵션: "0~2세", "체력적 한계", "아이가 혼자 있는 모습을 보았을 때"
+ * 평서문/제안문: "이 마음이 당신이 얼마나 좋은 부모인지 알려줍니다", "산책을 가보면 어떨까요?"
+ */
+function isKoreanSentence(text: string): boolean {
+  const t = text.trim();
+  // 마침표/느낌표로 끝나면 평서문
+  if (/[.!]\s*$/.test(t)) return true;
+  // 한국어 문장 종결어미 패턴 (평서/청유/제안/설명)
+  if (/(합니다|입니다|됩니다|습니다|ㅂ니다|해요|이에요|에요|예요|있어요|없어요|줘요|봐요|할게요|볼게요|세요|하세요|보세요|주세요|까요|을까요|ㄹ까요|는데요|거든요|잖아요|니까요|던데요|어요|여요|지요|죠)\s*[.?!]?\s*$/.test(t)) return true;
+  return false;
+}
+
 function parseInteractiveElements(text: string): {
   cleanText: string;
   elements: InteractiveElement[];
 } {
-  const elements: InteractiveElement[] = [];
   let cleanText = text;
+  let lastValidChoice: InteractiveElement | null = null;
+  let lastInput: InteractiveElement | null = null;
 
-  // Parse [CHOICE: "opt1" | "opt2" | "opt3"]
+  // Parse [CHOICE: "opt1" | "opt2" | "opt3"] — 마지막 유효 CHOICE만 사용
   const choiceRegex = /\[CHOICE:\s*(.+?)\]/g;
   let match;
   while ((match = choiceRegex.exec(text)) !== null) {
     const optionsStr = match[1];
     const options = optionsStr
       .split('|')
-      .map((opt) => opt.trim().replace(/^["""](.+?)["""]$/, '$1'));
-    elements.push({ type: 'choice', options });
+      .map((opt) => opt.trim().replace(/^["""](.+?)["""]$/, '$1'))
+      .filter((opt) => opt.length > 0 && !isKoreanSentence(opt)); // 평서문 필터링
+
+    // 유효한 옵션이 2~4개일 때만 CHOICE로 인식
+    if (options.length >= 2 && options.length <= 4) {
+      lastValidChoice = { type: 'choice', options };
+    }
     cleanText = cleanText.replace(match[0], '');
   }
 
-  // Parse [INPUT: "placeholder"]
+  // Parse [INPUT: "placeholder"] — 마지막 INPUT만 사용
   const inputRegex = /\[INPUT:\s*["""](.+?)["""]\]/g;
   while ((match = inputRegex.exec(text)) !== null) {
-    elements.push({ type: 'input', placeholder: match[1] });
+    lastInput = { type: 'input', placeholder: match[1] };
     cleanText = cleanText.replace(match[0], '');
   }
+
+  // 마지막 유효한 CHOICE 또는 INPUT 하나만 반환
+  const elements: InteractiveElement[] = [];
+  if (lastValidChoice) elements.push(lastValidChoice);
+  else if (lastInput) elements.push(lastInput);
 
   return { cleanText: cleanText.trim(), elements };
 }

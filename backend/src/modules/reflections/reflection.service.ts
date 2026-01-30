@@ -122,6 +122,26 @@ export class ReflectionService {
     userId: string,
     data: SendMessageInput
   ): Promise<ConversationResponse> {
+    // 게스트 모드: 데이터베이스 없이 AI 응답만 반환
+    if (userId === 'guest' || data.reflectionId.startsWith('guest-')) {
+      const aiResponseData = await claudeClient.getReframingResponse(
+        [{ role: 'user', content: data.content }],
+        undefined,
+        undefined,
+        data.counselingStyle as CounselingStyle
+      );
+
+      return {
+        id: `${data.reflectionId}-msg-${Date.now()}`,
+        reflectionId: data.reflectionId,
+        role: 'assistant',
+        content: aiResponseData.text,
+        timestamp: new Date(),
+        aiModel: 'claude-3-5-sonnet-20241022',
+        tokensUsed: aiResponseData.tokensUsed,
+      };
+    }
+
     // 회고 소유권 확인
     const reflection = await prisma.reflection.findFirst({
       where: {

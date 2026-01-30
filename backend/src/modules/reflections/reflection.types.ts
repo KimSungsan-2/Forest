@@ -19,7 +19,7 @@ export const createReflectionSchema = z.object({
  * 채팅 메시지 전송 스키마
  */
 export const sendMessageSchema = z.object({
-  reflectionId: z.string().uuid(),
+  reflectionId: z.string().min(1),
   content: z.string().min(1).max(5000),
   counselingStyle: z
     .enum(['humorous', 'nurturing', 'direct'])

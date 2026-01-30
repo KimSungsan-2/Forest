@@ -145,54 +145,62 @@ export class ReflectionController {
     try {
       const user = getAuthUser(request);
       const body = sendMessageSchema.parse(request.body);
+      const isGuestMode = user.userId === 'guest' || body.reflectionId.startsWith('guest-');
 
-      // 회고 소유권 확인
-      const reflection = await prisma.reflection.findFirst({
-        where: {
-          id: body.reflectionId,
-          userId: user.userId,
-        },
-      });
+      let messages: { role: 'user' | 'assistant'; content: string }[];
+      let emotionTag: EmotionTag | undefined;
+      let pastContext: string | undefined;
 
-      if (!reflection) {
-        return reply.code(404).send({ error: '회고를 찾을 수 없습니다' });
+      if (isGuestMode) {
+        // 게스트 모드: DB 없이 현재 메시지만 사용
+        messages = [{ role: 'user', content: body.content }];
+        emotionTag = undefined;
+        pastContext = undefined;
+      } else {
+        // 회고 소유권 확인
+        const reflection = await prisma.reflection.findFirst({
+          where: {
+            id: body.reflectionId,
+            userId: user.userId,
+          },
+        });
+
+        if (!reflection) {
+          return reply.code(404).send({ error: '회고를 찾을 수 없습니다' });
+        }
+
+        // 기존 대화 히스토리 가져오기
+        const conversationHistory = await prisma.conversation.findMany({
+          where: { reflectionId: body.reflectionId },
+          orderBy: { timestamp: 'asc' },
+          take: 10,
+        });
+
+        // 사용자 메시지 저장
+        await prisma.conversation.create({
+          data: {
+            reflectionId: body.reflectionId,
+            role: 'user',
+            content: body.content,
+          },
+        });
+
+        messages = [
+          ...conversationHistory.map((msg) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          })),
+          { role: 'user' as const, content: body.content },
+        ];
+
+        emotionTag = reflection.emotionalTone as EmotionTag;
+        pastContext = await buildPastContextPrompt(
+          user.userId,
+          body.content,
+          reflection.emotionalTone || undefined,
+          body.reflectionId,
+        );
       }
-
-      // 기존 대화 히스토리 가져오기
-      const conversationHistory = await prisma.conversation.findMany({
-        where: { reflectionId: body.reflectionId },
-        orderBy: { timestamp: 'asc' },
-        take: 10,
-      });
-
-      // 사용자 메시지 저장
-      await prisma.conversation.create({
-        data: {
-          reflectionId: body.reflectionId,
-          role: 'user',
-          content: body.content,
-        },
-      });
-
-      // 대화 히스토리를 Claude API 형식으로 변환
-      const messages = [
-        ...conversationHistory.map((msg) => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })),
-        {
-          role: 'user' as const,
-          content: body.content,
-        },
-      ];
-
-      // 과거 회고 맥락 검색 (RAG Phase 1)
-      const pastContext = await buildPastContextPrompt(
-        user.userId,
-        body.content,
-        reflection.emotionalTone || undefined,
-        body.reflectionId,
-      );
 
       // SSE 헤더 설정
       reply.raw.writeHead(200, {
@@ -206,7 +214,7 @@ export class ReflectionController {
       // 스트리밍 응답
       const result = await claudeClient.streamReframingResponse(
         messages,
-        reflection.emotionalTone as EmotionTag,
+        emotionTag,
         (chunk) => {
           fullResponse += chunk;
           // SSE 형식으로 청크 전송
@@ -220,20 +228,22 @@ export class ReflectionController {
       reply.raw.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       reply.raw.end();
 
-      // AI 응답 저장 (비동기)
-      prisma.conversation
-        .create({
-          data: {
-            reflectionId: body.reflectionId,
-            role: 'assistant',
-            content: fullResponse,
-            aiModel: 'claude-3-5-sonnet-20241022',
-            tokensUsed: result.tokensUsed,
-          },
-        })
-        .catch((error) => {
-          console.error('Failed to save AI response:', error);
-        });
+      // AI 응답 저장 (비동기, 게스트가 아닌 경우만)
+      if (!isGuestMode) {
+        prisma.conversation
+          .create({
+            data: {
+              reflectionId: body.reflectionId,
+              role: 'assistant',
+              content: fullResponse,
+              aiModel: 'claude-3-5-sonnet-20241022',
+              tokensUsed: result.tokensUsed,
+            },
+          })
+          .catch((error) => {
+            console.error('Failed to save AI response:', error);
+          });
+      }
     } catch (error) {
       if (!reply.sent) {
         if (error instanceof Error) {
