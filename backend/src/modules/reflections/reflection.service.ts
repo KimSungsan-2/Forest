@@ -52,7 +52,7 @@ export class ReflectionService {
           role: 'assistant',
           content: aiResponseData.text,
           timestamp: new Date(),
-          aiModel: 'claude-opus-4-20250514',
+          aiModel: 'claude-sonnet-4-20250514',
           tokensUsed: aiResponseData.tokensUsed,
         },
       };
@@ -104,7 +104,7 @@ export class ReflectionService {
         reflectionId: reflection.id,
         role: 'assistant',
         content: aiResponseData.text,
-        aiModel: 'claude-opus-4-20250514',
+        aiModel: 'claude-sonnet-4-20250514',
         tokensUsed: aiResponseData.tokensUsed,
       },
     });
@@ -137,7 +137,7 @@ export class ReflectionService {
         role: 'assistant',
         content: aiResponseData.text,
         timestamp: new Date(),
-        aiModel: 'claude-opus-4-20250514',
+        aiModel: 'claude-sonnet-4-20250514',
         tokensUsed: aiResponseData.tokensUsed,
       };
     }
@@ -204,7 +204,7 @@ export class ReflectionService {
         reflectionId: data.reflectionId,
         role: 'assistant',
         content: aiResponseData.text,
-        aiModel: 'claude-opus-4-20250514',
+        aiModel: 'claude-sonnet-4-20250514',
         tokensUsed: aiResponseData.tokensUsed,
       },
     });

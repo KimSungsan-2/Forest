@@ -14,14 +14,13 @@ const anthropic = new Anthropic({
   apiKey: config.anthropicApiKey,
 });
 
-const MODEL = 'claude-opus-4-20250514';
-const MAX_TOKENS = 8192;
-const TEMPERATURE = 0.7;
+const MODEL = 'claude-sonnet-4-20250514';
+const MAX_TOKENS = 16000;
+const THINKING_BUDGET = 10000;
 
-// Prefill: assistant 응답의 시작을 유도하여 뻔한 위로 대신 구체적 공감으로 시작하게 함
-const ASSISTANT_PREFILL = '당신이 말씀하신';
+// Extended Thinking은 temperature=1 필수
 
-console.log(`[ClaudeClient] Initialized with model=${MODEL}, maxTokens=${MAX_TOKENS}, temperature=${TEMPERATURE}`);
+console.log(`[ClaudeClient] Initialized with model=${MODEL}, maxTokens=${MAX_TOKENS}, thinkingBudget=${THINKING_BUDGET}`);
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -51,9 +50,9 @@ function logCacheUsage(usage: {
   const uncached = usage.input_tokens;
 
   if (cacheRead > 0) {
-    // Opus 4 기준: 캐시 읽기는 $1.5/1M (원래 $15/1M 대비 90% 절감)
+    // Sonnet 4 기준: 캐시 읽기는 $0.3/1M (원래 $3/1M 대비 90% 절감)
     const savedTokens = cacheRead;
-    const savedCostUSD = (savedTokens / 1_000_000) * (15 - 1.5);
+    const savedCostUSD = (savedTokens / 1_000_000) * (3 - 0.3);
     const savedCostKRW = Math.round(savedCostUSD * 1450);
     console.log(`[Cache] ✅ HIT — cached=${cacheRead} tokens, uncached=${uncached}, output=${usage.output_tokens} | 절감: ~${savedCostKRW}원`);
   } else if (cacheWrite > 0) {
@@ -141,29 +140,24 @@ export class ClaudeClient {
     const totalSystemChars = systemBlocks.reduce((sum, b) => sum + b.text.length, 0);
     console.log(`[Claude] model=${MODEL}, systemPrompt=${totalSystemChars}chars (${systemBlocks.length} blocks), messages=${messages.length}, isFollowUp=${isFollowUp}`);
 
-    const apiMessages = [
-      ...messages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      { role: 'assistant' as const, content: ASSISTANT_PREFILL },
-    ];
+    const apiMessages = messages.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
 
     const stream = await anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      temperature: TEMPERATURE,
+      temperature: 1, // Extended Thinking 필수
+      thinking: {
+        type: 'enabled',
+        budget_tokens: THINKING_BUDGET,
+      },
       system: systemBlocks,
       messages: apiMessages,
     });
 
-    // Prefill 텍스트를 응답 앞에 포함
-    fullText = ASSISTANT_PREFILL;
-    if (onChunk) {
-      onChunk(ASSISTANT_PREFILL);
-    }
-
-    // 스트림 이벤트 처리
+    // 스트림 이벤트 처리 (thinking 블록은 무시, text만 전달)
     stream.on('text', (text) => {
       fullText += text;
       if (onChunk) {
@@ -213,21 +207,22 @@ export class ClaudeClient {
     const totalSystemChars = systemBlocks.reduce((sum, b) => sum + b.text.length, 0);
     console.log(`[Claude] model=${MODEL}, systemPrompt=${totalSystemChars}chars (${systemBlocks.length} blocks), messages=${messages.length}, isFollowUp=${isFollowUp}`);
 
-    const apiMessages = [
-      ...messages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      { role: 'assistant' as const, content: ASSISTANT_PREFILL },
-    ];
+    const apiMessages = messages.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
 
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      temperature: TEMPERATURE,
+      temperature: 1, // Extended Thinking 필수
+      thinking: {
+        type: 'enabled',
+        budget_tokens: THINKING_BUDGET,
+      },
       system: systemBlocks,
       messages: apiMessages,
-    });
+    } as any);
 
     const usage = response.usage as {
       input_tokens: number;
@@ -237,9 +232,9 @@ export class ClaudeClient {
     };
     logCacheUsage(usage);
 
+    // thinking 블록은 건너뛰고 text 블록만 추출
     const textContent = response.content.find((block) => block.type === 'text');
-    const rawText = textContent && 'text' in textContent ? textContent.text : '';
-    const text = ASSISTANT_PREFILL + rawText;
+    const text = textContent && 'text' in textContent ? textContent.text : '';
 
     return {
       text,
