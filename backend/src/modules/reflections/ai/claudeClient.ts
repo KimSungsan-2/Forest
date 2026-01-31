@@ -155,7 +155,7 @@ export class ClaudeClient {
       },
       system: systemBlocks,
       messages: apiMessages,
-    });
+    } as any);
 
     // 스트림 이벤트 처리 (thinking 블록은 무시, text만 전달)
     stream.on('text', (text) => {
