@@ -19,7 +19,7 @@ const MAX_TOKENS = 8192;
 const TEMPERATURE = 0.7;
 
 // Prefill: assistant 응답의 시작을 유도하여 뻔한 위로 대신 구체적 공감으로 시작하게 함
-const ASSISTANT_PREFILL = '당신이 말씀하신 ';
+const ASSISTANT_PREFILL = '당신이 말씀하신';
 
 console.log(`[ClaudeClient] Initialized with model=${MODEL}, maxTokens=${MAX_TOKENS}, temperature=${TEMPERATURE}`);
 
