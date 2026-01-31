@@ -1,6 +1,6 @@
 {
   "name": "어른의 숲 (Forest of Calm)",
-  "short_name": "Forest of Calm",
+  "short_name": "어른의 숲",
   "description": "부모의 자책감을 성장의 데이터로 바꾸는 AI 감정 회고 플랫폼",
   "start_url": "/",
   "display": "standalone",
