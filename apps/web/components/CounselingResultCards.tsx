@@ -80,7 +80,7 @@ interface SceneTheme {
 }
 
 function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0): SceneTheme {
-  // 주제별로 3가지 변형 테마
+  // 주제별로 4가지 변형 테마
   const themeVariants: Record<SceneTopic, SceneTheme[]> = {
     play: [
       {
@@ -106,6 +106,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         afterTitle: '10분의 마법 같은 시간',
         beforeScene: '쏟아지는 요구와 지쳐가는 에너지',
         afterScene: '짧지만 온전히 함께한 따뜻한 시간',
+      },
+      {
+        before: { bg1: '#1a2636', bg2: '#2a3a4e', accent: '#64b5f6' },
+        after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#f06292' },
+        beforeTitle: '또 같은 놀이의 반복',
+        afterTitle: '반복 속에 피어난 새로운 순간',
+        beforeScene: '매일 같은 이야기를 반복하는 지루함',
+        afterScene: '익숙한 놀이에서 발견한 아이의 성장',
       },
     ],
     yelling: [
@@ -133,6 +141,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         beforeScene: '참고 참다 터져버린 뜨거운 감정',
         afterScene: '아이가 먼저 내민 손을 잡는 순간',
       },
+      {
+        before: { bg1: '#1a0a0a', bg2: '#2d1515', accent: '#ff5252' },
+        after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#4db6ac' },
+        beforeTitle: '멈출 수 없었던 목소리',
+        afterTitle: '조용히 안아준 뒤의 평화',
+        beforeScene: '내 목소리에 놀란 건 아이보다 나였다',
+        afterScene: '말 대신 안아주었을 때 흐른 고요',
+      },
     ],
     tired: [
       {
@@ -158,6 +174,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         afterTitle: '충전을 시작한 마음',
         beforeScene: '0%로 깜빡이는 마음의 배터리',
         afterScene: '천천히 차오르는 에너지의 초록빛',
+      },
+      {
+        before: { bg1: '#1a1a1a', bg2: '#2d2d2d', accent: '#b0bec5' },
+        after: { bg1: '#e8eaf6', bg2: '#c5cae9', accent: '#7986cb' },
+        beforeTitle: '쉬고 싶다는 말이 사치인 하루',
+        afterTitle: '3분의 숨, 하루를 바꾸는 쉼표',
+        beforeScene: '아픈데도 일어나야 하는 아침',
+        afterScene: '짧은 호흡이 선물한 작은 여유',
       },
     ],
     work: [
@@ -185,6 +209,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         beforeScene: '모니터 불빛 아래 놓인 가족 사진',
         afterScene: '아이의 작은 숨소리를 듣는 평화',
       },
+      {
+        before: { bg1: '#0d1b2a', bg2: '#1b3a4b', accent: '#4a90d9' },
+        after: { bg1: '#fff3e0', bg2: '#ffe0b2', accent: '#ff8a65' },
+        beforeTitle: '출근길의 죄책감',
+        afterTitle: '현관에서 받은 뜨거운 포옹',
+        beforeScene: '뒤돌아볼 때마다 작아지는 아이의 모습',
+        afterScene: '"다녀오세요!" 외치는 작은 목소리의 힘',
+      },
     ],
     sleep: [
       {
@@ -210,6 +242,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         afterTitle: '새벽달이 비추는 고요',
         beforeScene: '잠든 아이 옆에서 뜬 눈으로 보내는 밤',
         afterScene: '달빛 아래 평화롭게 잠든 두 사람',
+      },
+      {
+        before: { bg1: '#120e1c', bg2: '#1e1830', accent: '#7e57c2' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffca28' },
+        beforeTitle: '끊기지 않는 밤의 울음',
+        afterTitle: '함께 맞이한 첫 햇살',
+        beforeScene: '시계를 보는 것도 포기한 새벽',
+        afterScene: '창문 사이로 스며든 아침의 따뜻함',
       },
     ],
     food: [
@@ -237,6 +277,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         beforeScene: '바닥에 떨어진 반찬과 지친 한숨',
         afterScene: '반죽을 주무르며 웃는 두 쌍의 손',
       },
+      {
+        before: { bg1: '#2e1f0f', bg2: '#3d2b16', accent: '#a1887f' },
+        after: { bg1: '#e0f7fa', bg2: '#b2ebf2', accent: '#4dd0e1' },
+        beforeTitle: '한 숟갈도 넘기지 않는 아이',
+        afterTitle: '스스로 고른 오늘의 메뉴',
+        beforeScene: '30분째 한 자리에서 이어지는 식사 전쟁',
+        afterScene: '작은 손으로 직접 담은 자기만의 접시',
+      },
     ],
     screen: [
       {
@@ -262,6 +310,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         afterTitle: '대신 켜진 상상력의 불빛',
         beforeScene: '끄려다 포기한 지쳐버린 저녁',
         afterScene: '크레용으로 그린 오늘의 모험',
+      },
+      {
+        before: { bg1: '#0f0f2e', bg2: '#1a1a3e', accent: '#448aff' },
+        after: { bg1: '#e8f5e9', bg2: '#c8e6c9', accent: '#66bb6a' },
+        beforeTitle: '화면에 맡긴 시간의 무게',
+        afterTitle: '손잡고 나선 바깥 세상',
+        beforeScene: '조용해진 집이 편하면서도 불안한 저녁',
+        afterScene: '현관 앞 작은 모험이 시작되는 순간',
       },
     ],
     fighting: [
@@ -289,6 +345,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         beforeScene: '각자의 정의 사이에서 흔들리는 가족',
         afterScene: '아이를 위해 하나 된 마음',
       },
+      {
+        before: { bg1: '#1a0a20', bg2: '#2d1638', accent: '#ce93d8' },
+        after: { bg1: '#fff8e1', bg2: '#ffecb3', accent: '#ffd54f' },
+        beforeTitle: '같은 집, 다른 세계',
+        afterTitle: '식탁에서 시작된 대화',
+        beforeScene: '각자의 화면만 바라보는 조용한 저녁',
+        afterScene: '"오늘 어땠어?"라는 한마디가 열어준 문',
+      },
     ],
     lonely: [
       {
@@ -315,6 +379,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         beforeScene: '도움을 요청할 곳 없는 외로운 밤',
         afterScene: '이해받는다는 느낌이 만든 따뜻한 다리',
       },
+      {
+        before: { bg1: '#1b1b2f', bg2: '#162447', accent: '#546e7a' },
+        after: { bg1: '#fce4ec', bg2: '#f8bbd0', accent: '#ec407a' },
+        beforeTitle: '아무도 모르는 내 하루',
+        afterTitle: '같은 마음끼리 나누는 온기',
+        beforeScene: 'SNS 속 행복한 가족 사이에서 느끼는 거리감',
+        afterScene: '"저도 그래요"라는 말이 녹인 벽',
+      },
     ],
     default: [
       {
@@ -340,6 +412,14 @@ function getSceneTheme(topic: SceneTopic, emotion?: string, variant: number = 0)
         afterTitle: '새벽빛이 스미는 창가',
         beforeScene: '어두운 밤하늘 아래 웅크린 마음',
         afterScene: '첫 빛이 내리는 희망의 창가',
+      },
+      {
+        before: { bg1: '#1a1a2e', bg2: '#0f3460', accent: '#e94560' },
+        after: { bg1: '#e0f2f1', bg2: '#b2dfdb', accent: '#26a69a' },
+        beforeTitle: emotion ? `${emotion}에 잠긴 고요` : '소리 없는 마음의 파도',
+        afterTitle: '파도가 잔잔해지는 순간',
+        beforeScene: '겉으로는 괜찮은 척, 안으로는 흔들리는 밤',
+        afterScene: '자기 마음을 인정한 뒤 찾아온 평온',
       },
     ],
   };
@@ -899,13 +979,13 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
   }, []);
 
   const topic = useMemo(() => detectTopic(userContent || ''), [userContent]);
-  const variant = useMemo(() => getVariant(userContent || '' + (aiContent || ''), 3), [userContent, aiContent]);
+  const variant = useMemo(() => getVariant(userContent || '' + (aiContent || ''), 4), [userContent, aiContent]);
   const theme = useMemo(() => getSceneTheme(topic, emotion, variant), [topic, emotion, variant]);
 
   const killingMessage = useMemo(() => {
     const ai = aiContent || '';
     const m = ai.match(/==([^=]+)==/);
-    const msg = m ? m[1].trim() : '당신은 이미 충분히 좋은 부모입니다';
+    const msg = m ? m[1].trim() : '오늘의 마음도 내일의 당신을 만드는 중입니다';
     return msg.length > 30 ? msg.substring(0, 28) + '...' : msg;
   }, [aiContent]);
 
@@ -963,6 +1043,18 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                 ))}
                 <ellipse cx="140" cy="55" rx="50" ry="20" fill="#333" opacity="0.25" />
                 <ellipse cx="280" cy="70" rx="45" ry="18" fill="#333" opacity="0.2" />
+              </>)}
+              {variant === 3 && (<>
+                {/* 안개 낀 배경 */}
+                <ellipse cx="100" cy="120" rx="80" ry="25" fill="#444" opacity="0.15">
+                  <animate attributeName="cx" values="100;115;100" dur="7s" repeatCount="indefinite" />
+                </ellipse>
+                <ellipse cx="300" cy="90" rx="70" ry="22" fill="#444" opacity="0.12">
+                  <animate attributeName="cx" values="300;285;300" dur="8s" repeatCount="indefinite" />
+                </ellipse>
+                <ellipse cx="200" cy="150" rx="90" ry="20" fill="#555" opacity="0.08">
+                  <animate attributeName="cx" values="200;218;200" dur="9s" repeatCount="indefinite" />
+                </ellipse>
               </>)}
               <BeforeSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
@@ -1048,6 +1140,18 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                     <animate attributeName="opacity" values="0.25;0.15;0.25" dur={`${3+i*0.3}s`} repeatCount="indefinite" />
                   </path>
                 ))}
+              </>)}
+              {variant === 3 && (<>
+                {/* 꽃잎 흩날리는 배경 */}
+                {[{x:80,y:60},{x:160,y:45},{x:280,y:70},{x:340,y:55},{x:120,y:100},{x:240,y:90}].map((p,i) => (
+                  <circle key={`pt-${i}`} cx={p.x} cy={p.y} r={3+i%2} fill={['#f48fb1','#ce93d8','#ffab91','#80cbc4','#fff176','#a5d6a7'][i]} opacity={0.3+i*0.03}>
+                    <animate attributeName="cy" values={`${p.y};${p.y+15};${p.y}`} dur={`${3+i*0.5}s`} repeatCount="indefinite" />
+                    <animate attributeName="cx" values={`${p.x};${p.x+8};${p.x}`} dur={`${4+i*0.3}s`} repeatCount="indefinite" />
+                  </circle>
+                ))}
+                <circle cx="320" cy="65" r="30" fill="#fff9c4" opacity="0.25">
+                  <animate attributeName="r" values="30;36;30" dur="4s" repeatCount="indefinite" />
+                </circle>
               </>)}
               <AfterSceneContent topic={topic} />
               <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />
@@ -1173,6 +1277,17 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                     <ellipse cx="140" cy="55" rx="50" ry="20" fill="#333" opacity="0.25" />
                     <ellipse cx="280" cy="70" rx="45" ry="18" fill="#333" opacity="0.2" />
                   </>)}
+                  {variant === 3 && (<>
+                    <ellipse cx="100" cy="120" rx="80" ry="25" fill="#444" opacity="0.15">
+                      <animate attributeName="cx" values="100;115;100" dur="7s" repeatCount="indefinite" />
+                    </ellipse>
+                    <ellipse cx="300" cy="90" rx="70" ry="22" fill="#444" opacity="0.12">
+                      <animate attributeName="cx" values="300;285;300" dur="8s" repeatCount="indefinite" />
+                    </ellipse>
+                    <ellipse cx="200" cy="150" rx="90" ry="20" fill="#555" opacity="0.08">
+                      <animate attributeName="cx" values="200;218;200" dur="9s" repeatCount="indefinite" />
+                    </ellipse>
+                  </>)}
                   <BeforeSceneContent topic={topic} />
                   <rect x="0" y="400" width="400" height="120" fill="#111827" opacity="0.6" />
                   <text x="200" y="428" textAnchor="middle" fill="#d1d5db" fontFamily="sans-serif" fontSize="17" fontWeight="bold">상담 전</text>
@@ -1212,6 +1327,17 @@ export default function CounselingResultCards({ emotion, emotionEmoji, userConte
                     {[{x:100,y:80},{x:130,y:65},{x:160,y:75},{x:280,y:90},{x:310,y:78}].map((b,i) => (
                       <path key={`fbd-${i}`} d={`M${b.x},${b.y} Q${b.x-5},${b.y-5} ${b.x-10},${b.y} M${b.x},${b.y} Q${b.x+5},${b.y-5} ${b.x+10},${b.y}`} stroke="#666" strokeWidth="1.2" fill="none" opacity="0.25" />
                     ))}
+                  </>)}
+                  {variant === 3 && (<>
+                    {[{x:80,y:60},{x:160,y:45},{x:280,y:70},{x:340,y:55},{x:120,y:100},{x:240,y:90}].map((p,i) => (
+                      <circle key={`fpt-${i}`} cx={p.x} cy={p.y} r={3+i%2} fill={['#f48fb1','#ce93d8','#ffab91','#80cbc4','#fff176','#a5d6a7'][i]} opacity={0.3+i*0.03}>
+                        <animate attributeName="cy" values={`${p.y};${p.y+15};${p.y}`} dur={`${3+i*0.5}s`} repeatCount="indefinite" />
+                        <animate attributeName="cx" values={`${p.x};${p.x+8};${p.x}`} dur={`${4+i*0.3}s`} repeatCount="indefinite" />
+                      </circle>
+                    ))}
+                    <circle cx="320" cy="65" r="30" fill="#fff9c4" opacity="0.25">
+                      <animate attributeName="r" values="30;36;30" dur="4s" repeatCount="indefinite" />
+                    </circle>
                   </>)}
                   <AfterSceneContent topic={topic} />
                   <rect x="0" y="400" width="400" height="120" fill="#1b5e20" opacity="0.12" />

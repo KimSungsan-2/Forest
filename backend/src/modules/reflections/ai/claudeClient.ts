@@ -3,6 +3,7 @@ import { config } from '../../../config/env';
 import {
   COGNITIVE_REFRAMING_SYSTEM_PROMPT,
   FOLLOW_UP_CONVERSATION_CONTEXT,
+  FINAL_RULES_REMINDER,
   getEmotionSpecificPrompt,
   getCounselingStylePrompt,
   EmotionTag,
@@ -13,8 +14,14 @@ const anthropic = new Anthropic({
   apiKey: config.anthropicApiKey,
 });
 
-const MODEL = 'claude-3-haiku-20240307';
-const MAX_TOKENS = 4096;
+const MODEL = 'claude-opus-4-20250514';
+const MAX_TOKENS = 8192;
+const TEMPERATURE = 0.7;
+
+// Prefill: assistant 응답의 시작을 유도하여 뻔한 위로 대신 구체적 공감으로 시작하게 함
+const ASSISTANT_PREFILL = '당신이 말씀하신 ';
+
+console.log(`[ClaudeClient] Initialized with model=${MODEL}, maxTokens=${MAX_TOKENS}, temperature=${TEMPERATURE}`);
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -27,6 +34,80 @@ export interface StreamChunk {
     type: 'text_delta';
     text: string;
   };
+}
+
+/**
+ * 캐시 사용량 로깅
+ * Prompt Caching 히트/미스 여부와 비용 절감 효과를 콘솔에 출력
+ */
+function logCacheUsage(usage: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}) {
+  const cacheWrite = usage.cache_creation_input_tokens || 0;
+  const cacheRead = usage.cache_read_input_tokens || 0;
+  const uncached = usage.input_tokens;
+
+  if (cacheRead > 0) {
+    // Opus 4 기준: 캐시 읽기는 $1.5/1M (원래 $15/1M 대비 90% 절감)
+    const savedTokens = cacheRead;
+    const savedCostUSD = (savedTokens / 1_000_000) * (15 - 1.5);
+    const savedCostKRW = Math.round(savedCostUSD * 1450);
+    console.log(`[Cache] ✅ HIT — cached=${cacheRead} tokens, uncached=${uncached}, output=${usage.output_tokens} | 절감: ~${savedCostKRW}원`);
+  } else if (cacheWrite > 0) {
+    console.log(`[Cache] 📝 WRITE — cached=${cacheWrite} tokens (다음 요청부터 캐시 적용), uncached=${uncached}, output=${usage.output_tokens}`);
+  } else {
+    console.log(`[Cache] ❌ MISS — input=${uncached}, output=${usage.output_tokens} (캐시 미적용)`);
+  }
+}
+
+/**
+ * 시스템 프롬프트를 Prompt Caching 형식으로 변환
+ * 변하지 않는 기본 프롬프트는 캐시하고, 동적 부분은 별도 블록으로 분리
+ */
+function buildCachedSystemPrompt(
+  emotion?: EmotionTag,
+  counselingStyle?: CounselingStyle,
+  pastContext?: string,
+  isFollowUp?: boolean
+): Anthropic.Messages.TextBlockParam[] {
+  // 블록 1: 핵심 시스템 프롬프트 (모든 요청에 동일 → 캐시 대상)
+  const blocks: Anthropic.Messages.TextBlockParam[] = [
+    {
+      type: 'text',
+      text: COGNITIVE_REFRAMING_SYSTEM_PROMPT,
+      cache_control: { type: 'ephemeral' },
+    } as Anthropic.Messages.TextBlockParam,
+  ];
+
+  // 블록 2: 동적 컨텍스트 (대화 상태에 따라 변함)
+  const dynamicParts: string[] = [];
+
+  if (isFollowUp) {
+    dynamicParts.push(FOLLOW_UP_CONVERSATION_CONTEXT);
+  }
+  if (emotion) {
+    dynamicParts.push(getEmotionSpecificPrompt(emotion));
+  }
+  const stylePrompt = getCounselingStylePrompt(counselingStyle);
+  if (stylePrompt) {
+    dynamicParts.push(stylePrompt);
+  }
+  if (pastContext) {
+    dynamicParts.push(pastContext);
+  }
+  dynamicParts.push(FINAL_RULES_REMINDER);
+
+  if (dynamicParts.length > 0) {
+    blocks.push({
+      type: 'text',
+      text: dynamicParts.join('\n\n'),
+    });
+  }
+
+  return blocks;
 }
 
 /**
@@ -49,27 +130,38 @@ export class ClaudeClient {
     counselingStyle?: CounselingStyle
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
-
-    const systemPrompt =
-      COGNITIVE_REFRAMING_SYSTEM_PROMPT +
-      (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
-      (emotion ? getEmotionSpecificPrompt(emotion) : '') +
-      getCounselingStylePrompt(counselingStyle) +
-      (pastContext || '');
+    const systemBlocks = buildCachedSystemPrompt(emotion, counselingStyle, pastContext, isFollowUp);
 
     let fullText = '';
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheCreateTokens = 0;
+    let cacheReadTokens = 0;
+
+    const totalSystemChars = systemBlocks.reduce((sum, b) => sum + b.text.length, 0);
+    console.log(`[Claude] model=${MODEL}, systemPrompt=${totalSystemChars}chars (${systemBlocks.length} blocks), messages=${messages.length}, isFollowUp=${isFollowUp}`);
+
+    const apiMessages = [
+      ...messages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
+      { role: 'assistant' as const, content: ASSISTANT_PREFILL },
+    ];
 
     const stream = await anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages: messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
+      temperature: TEMPERATURE,
+      system: systemBlocks,
+      messages: apiMessages,
     });
+
+    // Prefill 텍스트를 응답 앞에 포함
+    fullText = ASSISTANT_PREFILL;
+    if (onChunk) {
+      onChunk(ASSISTANT_PREFILL);
+    }
 
     // 스트림 이벤트 처리
     stream.on('text', (text) => {
@@ -83,11 +175,22 @@ export class ClaudeClient {
       if (message.usage) {
         inputTokens = message.usage.input_tokens;
         outputTokens = message.usage.output_tokens;
+        // @ts-expect-error — cache fields exist in API response but not yet in SDK types
+        cacheCreateTokens = message.usage.cache_creation_input_tokens || 0;
+        // @ts-expect-error — cache fields exist in API response but not yet in SDK types
+        cacheReadTokens = message.usage.cache_read_input_tokens || 0;
       }
     });
 
     // 스트림 완료 대기
     await stream.finalMessage();
+
+    logCacheUsage({
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cache_creation_input_tokens: cacheCreateTokens,
+      cache_read_input_tokens: cacheReadTokens,
+    });
 
     return {
       text: fullText,
@@ -105,30 +208,42 @@ export class ClaudeClient {
     counselingStyle?: CounselingStyle
   ): Promise<{ text: string; tokensUsed: number }> {
     const isFollowUp = messages.length > 1;
+    const systemBlocks = buildCachedSystemPrompt(emotion, counselingStyle, pastContext, isFollowUp);
 
-    const systemPrompt =
-      COGNITIVE_REFRAMING_SYSTEM_PROMPT +
-      (isFollowUp ? `\n\n${FOLLOW_UP_CONVERSATION_CONTEXT}` : '') +
-      (emotion ? getEmotionSpecificPrompt(emotion) : '') +
-      getCounselingStylePrompt(counselingStyle) +
-      (pastContext || '');
+    const totalSystemChars = systemBlocks.reduce((sum, b) => sum + b.text.length, 0);
+    console.log(`[Claude] model=${MODEL}, systemPrompt=${totalSystemChars}chars (${systemBlocks.length} blocks), messages=${messages.length}, isFollowUp=${isFollowUp}`);
+
+    const apiMessages = [
+      ...messages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
+      { role: 'assistant' as const, content: ASSISTANT_PREFILL },
+    ];
 
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages: messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
+      temperature: TEMPERATURE,
+      system: systemBlocks,
+      messages: apiMessages,
     });
 
+    const usage = response.usage as {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+    logCacheUsage(usage);
+
     const textContent = response.content.find((block) => block.type === 'text');
-    const text = textContent && 'text' in textContent ? textContent.text : '';
+    const rawText = textContent && 'text' in textContent ? textContent.text : '';
+    const text = ASSISTANT_PREFILL + rawText;
 
     return {
       text,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+      tokensUsed: usage.input_tokens + usage.output_tokens,
     };
   }
 
@@ -141,7 +256,7 @@ export class ClaudeClient {
     conversations: Message[],
     emotion?: EmotionTag
   ): Promise<{ text: string; tokensUsed: number }> {
-    const systemPrompt = `당신은 부모의 감정 지원 동반자입니다. 지금까지의 상담 대화를 바탕으로, 내일 실천할 수 있는 **구체적인 추천 액션 1가지**를 제안해주세요.
+    const systemPromptText = `당신은 부모의 감정 지원 동반자입니다. 지금까지의 상담 대화를 바탕으로, 내일 실천할 수 있는 **구체적인 추천 액션 1가지**를 제안해주세요.
 
 **형식:**
 - "내일은 [구체적인 활동]을 해보세요." 또는 "내일은 아이에게 '[구체적인 말]'이라고 말해보세요." 형태로 작성
@@ -163,19 +278,33 @@ export class ClaudeClient {
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 256,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPromptText,
+          cache_control: { type: 'ephemeral' },
+        } as Anthropic.Messages.TextBlockParam,
+      ],
       messages: conversations.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),
     });
 
+    const usage = response.usage as {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+    logCacheUsage(usage);
+
     const textContent = response.content.find((block) => block.type === 'text');
     const text = textContent && 'text' in textContent ? textContent.text : '';
 
     return {
       text,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+      tokensUsed: usage.input_tokens + usage.output_tokens,
     };
   }
 

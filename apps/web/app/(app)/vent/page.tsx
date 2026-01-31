@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag, CounselingStyle } from '../../../../../shared/types/reflection';
-import VoiceInput from './components/VoiceInput';
 import AiMessageBubble from '@/components/AiMessageBubble';
 import CounselingResultCards from '@/components/CounselingResultCards';
 
@@ -43,10 +42,12 @@ interface InteractiveElement {
  */
 function isKoreanSentence(text: string): boolean {
   const t = text.trim();
+  // 15글자 이상이면 문장으로 간주 (CHOICE 옵션은 ~10글자 이내여야 함)
+  if (t.length > 15) return true;
   // 마침표/느낌표로 끝나면 평서문
   if (/[.!]\s*$/.test(t)) return true;
   // 한국어 문장 종결어미 패턴 (평서/청유/제안/설명)
-  if (/(합니다|입니다|됩니다|습니다|ㅂ니다|해요|이에요|에요|예요|있어요|없어요|줘요|봐요|할게요|볼게요|세요|하세요|보세요|주세요|까요|을까요|ㄹ까요|는데요|거든요|잖아요|니까요|던데요|어요|여요|지요|죠)\s*[.?!]?\s*$/.test(t)) return true;
+  if (/(합니다|입니다|됩니다|습니다|ㅂ니다|해요|이에요|에요|예요|있어요|없어요|줘요|봐요|할게요|볼게요|세요|하세요|보세요|주세요|까요|을까요|ㄹ까요|는데요|거든요|잖아요|니까요|던데요|어요|여요|지요|죠|군요|네요|이네요|더라고요|거예요|텐데요|다고요|래요|대요|던가요|ㄴ가요|은가요|려고요|ㄹ게요|을게요|ㄴ데요|은데요|듯해요|것같아요|같아요|싶어요|ㄹ수있어요|을수있어요)\s*[.?!]?\s*$/.test(t)) return true;
   return false;
 }
 
@@ -311,15 +312,6 @@ export default function VentPage() {
               </span>
             </div>
 
-            <div className="pt-3 border-t border-gray-200">
-              <div className="mb-2 text-xs sm:text-sm font-medium text-gray-700">
-                또는 음성으로 표현하기
-              </div>
-              <VoiceInput
-                onTranscriptChange={(text) => setContent((prev) => prev + ' ' + text)}
-                disabled={chatLoading}
-              />
-            </div>
           </div>
 
           <div className="flex gap-3">

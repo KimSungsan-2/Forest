@@ -19,8 +19,30 @@ export default function HomePage() {
           부모의 자책감을 성장의 데이터로 바꾸는 AI 감정 회고 플랫폼
         </p>
 
+        {/* CTA 버튼 — 가장 위에 배치 */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/vent"
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg shadow-lg"
+          >
+            게스트로 시작하기 →
+          </Link>
+          <Link
+            href="/signup"
+            className="bg-white hover:bg-gray-50 text-green-600 font-semibold py-4 px-8 rounded-lg border-2 border-green-600 transition-colors text-lg"
+          >
+            회원가입
+          </Link>
+          <Link
+            href="/login"
+            className="bg-white hover:bg-gray-50 text-gray-600 font-semibold py-4 px-8 rounded-lg border-2 border-gray-300 transition-colors text-lg"
+          >
+            로그인
+          </Link>
+        </div>
+
         {/* 핵심 기능 소개 */}
-        <div className="grid md:grid-cols-2 gap-6 mt-12">
+        <div className="grid md:grid-cols-3 gap-6 mt-12">
           <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="text-4xl mb-4">💬</div>
             <h3 className="text-lg font-semibold mb-2">AI 가이디드 벤팅</h3>
@@ -40,15 +62,6 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="text-4xl mb-4">🎤</div>
-            <h3 className="text-lg font-semibold mb-2">음성 입력</h3>
-            <p className="text-gray-600 text-sm">
-              피곤할 때는 타이핑 대신
-              목소리로 감정을 표현하세요.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="text-4xl mb-4">📊</div>
             <h3 className="text-lg font-semibold mb-2">회고 히스토리</h3>
             <p className="text-gray-600 text-sm">
@@ -56,28 +69,6 @@ export default function HomePage() {
               성장의 흔적을 확인하세요.
             </p>
           </div>
-        </div>
-
-        {/* CTA 버튼 */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-          <Link
-            href="/vent"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors text-lg shadow-lg"
-          >
-            게스트로 시작하기 →
-          </Link>
-          <Link
-            href="/signup"
-            className="bg-white hover:bg-gray-50 text-green-600 font-semibold py-4 px-8 rounded-lg border-2 border-green-600 transition-colors text-lg"
-          >
-            회원가입
-          </Link>
-          <Link
-            href="/login"
-            className="bg-white hover:bg-gray-50 text-gray-600 font-semibold py-4 px-8 rounded-lg border-2 border-gray-300 transition-colors text-lg"
-          >
-            로그인
-          </Link>
         </div>
 
         {/* 프라이버시 강조 */}

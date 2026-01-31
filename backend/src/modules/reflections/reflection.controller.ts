@@ -236,7 +236,7 @@ export class ReflectionController {
               reflectionId: body.reflectionId,
               role: 'assistant',
               content: fullResponse,
-              aiModel: 'claude-3-5-sonnet-20241022',
+              aiModel: 'claude-opus-4-20250514',
               tokensUsed: result.tokensUsed,
             },
           })
