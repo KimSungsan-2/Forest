@@ -44,8 +44,7 @@ lerna-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# PWA
-apps/web/public/sw.js
+# PWA (auto-generated files only)
 apps/web/public/sw.js.map
 apps/web/public/workbox-*.js
 apps/web/public/workbox-*.js.map

@@ -8,7 +8,7 @@ export const createReflectionSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   content: z.string().min(1, '내용을 입력해주세요').max(5000),
   emotionTag: z
-    .enum(['guilt', 'anger', 'exhaustion', 'anxiety', 'sadness', 'frustration', 'overwhelm', 'loneliness'])
+    .enum(['guilt', 'anger', 'exhaustion', 'anxiety', 'sadness', 'frustration', 'overwhelm', 'loneliness', 'pride', 'joy', 'gratitude', 'happiness'])
     .optional(),
   counselingStyle: z
     .enum(['humorous', 'nurturing', 'direct'])

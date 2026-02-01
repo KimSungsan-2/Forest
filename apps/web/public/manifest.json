@@ -2,8 +2,10 @@
   "name": "어른의 숲 (Forest of Calm)",
   "short_name": "어른의 숲",
   "description": "부모의 자책감을 성장의 데이터로 바꾸는 AI 감정 회고 플랫폼",
-  "start_url": "/",
+  "start_url": "/vent",
+  "scope": "/",
   "display": "standalone",
+  "id": "/",
   "background_color": "#f0f4f8",
   "theme_color": "#34d399",
   "orientation": "portrait",
@@ -12,13 +14,25 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["health", "lifestyle"],
