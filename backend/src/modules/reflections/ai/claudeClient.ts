@@ -324,6 +324,10 @@ export class ClaudeClient {
       anxiety: ['불안', '걱정', '두렵', '초조', 'anxious', 'worried', 'nervous'],
       sadness: ['슬프', '우울', '외로', '눈물', 'sad', 'depressed', 'lonely'],
       frustration: ['답답', '막막', '좌절', 'frustrated', 'stuck'],
+      pride: ['뿌듯', '자랑', '대견', '잘했', '성장', 'proud', 'accomplished'],
+      joy: ['기쁘', '즐거', '신나', '좋았', '웃었', 'happy', 'joyful', 'fun'],
+      gratitude: ['감사', '고마', '다행', '감동', 'grateful', 'thankful', 'blessed'],
+      happiness: ['행복', '사랑', '따뜻', '포근', '평화', 'love', 'warm', 'peaceful'],
     };
 
     let detectedEmotion = 'neutral';
@@ -337,24 +341,20 @@ export class ClaudeClient {
       }
     }
 
-    // 부정적 단어 카운트로 감정 점수 계산
+    // 긍정/부정 단어 카운트로 감정 점수 계산
     const negativeWords = [
-      '못',
-      '안',
-      '나쁜',
-      '형편없',
-      '실패',
-      '문제',
-      '힘들',
-      'bad',
-      'terrible',
-      'fail',
-      'problem',
+      '못', '안', '나쁜', '형편없', '실패', '문제', '힘들',
+      'bad', 'terrible', 'fail', 'problem',
+    ];
+    const positiveWords = [
+      '좋', '잘', '행복', '기쁘', '뿌듯', '감사', '사랑', '웃',
+      'good', 'great', 'happy', 'love', 'proud',
     ];
     const negativeCount = negativeWords.filter((word) => lowerText.includes(word)).length;
+    const positiveCount = positiveWords.filter((word) => lowerText.includes(word)).length;
 
-    const sentimentScore = Math.max(-1, -0.1 * negativeCount);
-    const stressLevel = Math.min(10, Math.floor(negativeCount / 2) + 3);
+    const sentimentScore = Math.max(-1, Math.min(1, (positiveCount * 0.15) - (negativeCount * 0.1)));
+    const stressLevel = Math.min(10, Math.max(1, Math.floor(negativeCount / 2) + 3 - positiveCount));
 
     return {
       emotionalTone: detectedEmotion,

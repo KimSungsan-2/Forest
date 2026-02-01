@@ -6,7 +6,11 @@ export type EmotionTag =
   | 'sadness'
   | 'frustration'
   | 'overwhelm'
-  | 'loneliness';
+  | 'loneliness'
+  | 'pride'
+  | 'joy'
+  | 'gratitude'
+  | 'happiness';
 
 export type CounselingStyle = 'humorous' | 'nurturing' | 'direct';
 

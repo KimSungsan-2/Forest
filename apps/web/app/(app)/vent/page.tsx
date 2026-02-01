@@ -7,7 +7,14 @@ import type { EmotionTag, CounselingStyle } from '../../../../../shared/types/re
 import AiMessageBubble from '@/components/AiMessageBubble';
 import CounselingResultCards from '@/components/CounselingResultCards';
 
-const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
+const POSITIVE_EMOTIONS: { value: EmotionTag; label: string; emoji: string }[] = [
+  { value: 'pride', label: '뿌듯함', emoji: '😊' },
+  { value: 'joy', label: '기쁨', emoji: '😁' },
+  { value: 'gratitude', label: '감사', emoji: '🥰' },
+  { value: 'happiness', label: '행복', emoji: '☀️' },
+];
+
+const NEGATIVE_EMOTIONS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'guilt', label: '죄책감', emoji: '😔' },
   { value: 'anger', label: '분노', emoji: '😤' },
   { value: 'exhaustion', label: '피로', emoji: '😫' },
@@ -17,6 +24,8 @@ const EMOTION_TAGS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'overwhelm', label: '압도됨', emoji: '😵' },
   { value: 'loneliness', label: '외로움', emoji: '😞' },
 ];
+
+const EMOTION_TAGS = [...POSITIVE_EMOTIONS, ...NEGATIVE_EMOTIONS];
 
 const COUNSELING_STYLES: { value: CounselingStyle; label: string; emoji: string; description: string }[] = [
   { value: 'nurturing', label: '다독이는', emoji: '🤗', description: '따뜻하고 부드러운 위로' },
@@ -226,24 +235,45 @@ export default function VentPage() {
         <div className="space-y-5">
           <div className="text-center px-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1.5">
-              오늘 어떤 감정을 느끼셨나요?
+              오늘 어떤 하루였나요?
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              감정을 선택하면 맞춤 상담을 받을 수 있어요
+              좋았던 일도, 힘들었던 일도 함께 나눠요
             </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
-            {EMOTION_TAGS.map((emotion) => (
-              <button
-                key={emotion.value}
-                onClick={() => handleEmotionSelect(emotion.value)}
-                className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 active:scale-95 transition-all text-center"
-              >
-                <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
-                <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
-              </button>
-            ))}
+          {/* 긍정 감정 */}
+          <div className="space-y-2">
+            <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">오늘 좋은 일이 있었나요?</p>
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              {POSITIVE_EMOTIONS.map((emotion) => (
+                <button
+                  key={emotion.value}
+                  onClick={() => handleEmotionSelect(emotion.value)}
+                  className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 active:scale-95 transition-all text-center"
+                >
+                  <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
+                  <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 부정 감정 */}
+          <div className="space-y-2">
+            <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">좀 힘든 하루였나요?</p>
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              {NEGATIVE_EMOTIONS.map((emotion) => (
+                <button
+                  key={emotion.value}
+                  onClick={() => handleEmotionSelect(emotion.value)}
+                  className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 active:scale-95 transition-all text-center"
+                >
+                  <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
+                  <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="text-center pt-2">
@@ -273,7 +303,7 @@ export default function VentPage() {
               오늘 하루 어떠셨나요?
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              힘들었던 일, 자책했던 순간을 자유롭게 털어놓으세요
+              뿌듯했던 순간도, 힘들었던 순간도 자유롭게 이야기해주세요
             </p>
           </div>
 
@@ -299,7 +329,7 @@ export default function VentPage() {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="예: 오늘 아이에게 소리를 질렀어요. 너무 피곤했고 여러 번 말해도 듣지 않아서 결국 화를 냈습니다..."
+              placeholder="예: 오늘 아이가 처음으로 혼자 신발을 신었어요! 너무 뿌듯했어요 / 아이에게 소리를 질렀어요. 너무 피곤해서 결국 화를 냈습니다..."
               className="w-full h-48 sm:h-64 p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none text-sm sm:text-base"
               autoFocus
             />
@@ -308,7 +338,7 @@ export default function VentPage() {
                 {content.length} / 5000
               </span>
               <span className="text-xs text-gray-400 hidden sm:inline">
-                솔직하게 털어놓을수록 더 도움이 됩니다
+                어떤 감정이든 솔직할수록 더 도움이 됩니다
               </span>
             </div>
 

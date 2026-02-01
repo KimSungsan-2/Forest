@@ -623,6 +623,10 @@ export const EMOTION_TAGS_KR = {
   frustration: '좌절',
   overwhelm: '압도됨',
   loneliness: '외로움',
+  pride: '뿌듯함',
+  joy: '기쁨',
+  gratitude: '감사',
+  happiness: '행복',
 } as const;
 
 export const EMOTION_TAGS_EN = {
@@ -634,6 +638,10 @@ export const EMOTION_TAGS_EN = {
   frustration: 'Frustration',
   overwhelm: 'Overwhelm',
   loneliness: 'Loneliness',
+  pride: 'Pride',
+  joy: 'Joy',
+  gratitude: 'Gratitude',
+  happiness: 'Happiness',
 } as const;
 
 /**
@@ -670,6 +678,10 @@ export function getEmotionSpecificPrompt(emotion?: EmotionTag): string {
     frustration: '사용자는 좌절을 느끼고 있습니다. 노력을 인정하고 진전의 비선형성을 재구성하세요.',
     overwhelm: '사용자는 압도되고 있습니다. 한 번에 하나씩, 가장 작은 다음 단계를 식별하도록 도와주세요.',
     loneliness: '사용자는 외로움을 느끼고 있습니다. 경험을 정상화하고 연결의 중요성을 인정하세요.',
+    pride: '사용자는 뿌듯함을 느끼고 있습니다. 이 감정을 충분히 축하해주고, 구체적으로 무엇이 뿌듯했는지 더 깊이 탐색하세요. 작은 성취도 큰 의미가 있음을 확인해주세요.',
+    joy: '사용자는 기쁨을 느끼고 있습니다. 기쁜 순간을 함께 기뻐하고, 이 경험이 부모로서의 성장과 어떻게 연결되는지 따뜻하게 비춰주세요.',
+    gratitude: '사용자는 감사함을 느끼고 있습니다. 감사의 대상과 이유를 함께 음미하고, 이 마음이 가족 관계에 미치는 긍정적 영향을 구체적으로 짚어주세요.',
+    happiness: '사용자는 행복을 느끼고 있습니다. 행복한 순간을 충분히 기념하고, 이 감정을 기억할 수 있도록 도와주세요. 행복도 기록할 가치가 있는 소중한 감정임을 확인해주세요.',
   };
 
   return `\n\n**감정 맥락:** ${emotionPrompts[emotion]}`;

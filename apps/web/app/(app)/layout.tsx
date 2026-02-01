@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import UsageBanner from '@/components/UsageBanner';
+import { useTimeTheme } from '@/lib/hooks/useTimeTheme';
 
 export default function AppLayout({
   children,
@@ -15,6 +16,7 @@ export default function AppLayout({
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const theme = useTimeTheme();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -50,11 +52,18 @@ export default function AppLayout({
     router.push('/');
   };
 
+  const navLinks = [
+    { href: '/dashboard', label: '대시보드' },
+    { href: '/vent', label: '오늘의 기록' },
+    { href: '/history', label: '히스토리' },
+    { href: '/mind-weather', label: '마음 날씨' },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen ${theme.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="text-4xl mb-4">🌲</div>
+          <div className="text-4xl mb-4">{theme.icon}</div>
           <p className="text-gray-600">로딩 중...</p>
         </div>
       </div>
@@ -62,59 +71,32 @@ export default function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${theme.bgGradient} transition-colors duration-1000`}>
       {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className={`${theme.headerBg} border-b sticky top-0 z-10 transition-colors duration-1000`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* 로고 */}
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <span className="text-2xl">🌲</span>
-              <span className="text-xl font-bold text-green-800">어른의 숲</span>
+              <span className="text-2xl">{theme.icon}</span>
+              <span className={`text-xl font-bold ${theme.accentColor}`}>어른의 숲</span>
             </Link>
 
             {/* 네비게이션 */}
             <nav className="hidden md:flex space-x-8">
-              <Link
-                href="/dashboard"
-                className={`${
-                  pathname === '/dashboard'
-                    ? 'text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-600 hover:text-green-600'
-                } pb-1 transition-colors`}
-              >
-                대시보드
-              </Link>
-              <Link
-                href="/vent"
-                className={`${
-                  pathname === '/vent'
-                    ? 'text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-600 hover:text-green-600'
-                } pb-1 transition-colors`}
-              >
-                감정 털어놓기
-              </Link>
-              <Link
-                href="/history"
-                className={`${
-                  pathname === '/history'
-                    ? 'text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-600 hover:text-green-600'
-                } pb-1 transition-colors`}
-              >
-                히스토리
-              </Link>
-              <Link
-                href="/mind-weather"
-                className={`${
-                  pathname === '/mind-weather'
-                    ? 'text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-600 hover:text-green-600'
-                } pb-1 transition-colors`}
-              >
-                마음 날씨
-              </Link>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`${
+                    pathname === link.href
+                      ? `${theme.navActive} border-b-2 ${theme.accentBorder}`
+                      : `text-gray-600 ${theme.accentHover}`
+                  } pb-1 transition-colors`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
 
             {/* 사용자 메뉴 */}
@@ -125,7 +107,7 @@ export default function AppLayout({
               {user?.email === 'guest' ? (
                 <Link
                   href="/login"
-                  className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+                  className={`text-sm ${theme.accentColor} font-medium transition-colors`}
                 >
                   로그인
                 </Link>
@@ -143,47 +125,20 @@ export default function AppLayout({
       </header>
 
       {/* 모바일 네비게이션 */}
-      <nav className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex space-x-4 overflow-x-auto">
-        <Link
-          href="/dashboard"
-          className={`${
-            pathname === '/dashboard'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          } px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap`}
-        >
-          대시보드
-        </Link>
-        <Link
-          href="/vent"
-          className={`${
-            pathname === '/vent'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          } px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap`}
-        >
-          감정 털어놓기
-        </Link>
-        <Link
-          href="/history"
-          className={`${
-            pathname === '/history'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          } px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap`}
-        >
-          히스토리
-        </Link>
-        <Link
-          href="/mind-weather"
-          className={`${
-            pathname === '/mind-weather'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          } px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap`}
-        >
-          마음 날씨
-        </Link>
+      <nav className={`md:hidden ${theme.headerBg} border-b px-4 py-3 flex space-x-4 overflow-x-auto transition-colors duration-1000`}>
+        {navLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`${
+              pathname === link.href
+                ? theme.navActiveBg
+                : 'bg-gray-100 text-gray-600'
+            } px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </nav>
 
       {/* 사용량 배너 */}
