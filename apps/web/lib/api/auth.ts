@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import type { SignupRequest, LoginRequest, AuthResponse, User } from '../../../../shared/types/auth';
+import type { SignupRequest, LoginRequest, AuthResponse, User, UpdateProfileRequest } from '../../../../shared/types/auth';
 
 export const authApi = {
   /**
@@ -59,6 +59,16 @@ export const authApi = {
    */
   isAuthenticated: (): boolean => {
     return !!authApi.getToken();
+  },
+
+  /**
+   * 프로필 업데이트 (양육 환경 + 아이 정보)
+   */
+  updateProfile: async (data: UpdateProfileRequest): Promise<{ user: User }> => {
+    return apiRequest<{ user: User }>('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   /**

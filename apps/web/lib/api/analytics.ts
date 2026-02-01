@@ -20,7 +20,19 @@ export interface TrendData {
   trendDirection: string;
 }
 
+export interface TodayEmotionStats {
+  totalToday: number;
+  emotions: { emotion: string; count: number; percentage: number }[];
+}
+
 export const analyticsApi = {
+  /**
+   * 오늘의 감정 통계 (공개)
+   */
+  async getTodayEmotions(): Promise<TodayEmotionStats> {
+    return apiRequest('/api/analytics/today-emotions');
+  },
+
   /**
    * 마음 날씨 지수 계산
    */

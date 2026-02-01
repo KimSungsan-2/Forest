@@ -2,13 +2,17 @@ import { FastifyInstance } from 'fastify';
 import { authenticateOptional } from '../../middleware/auth';
 import { requirePremium } from '../../middleware/subscription';
 import {
+  getTodayEmotionStats,
   calculateMindWeather,
   getLatestMindWeather,
   getMindWeatherTrend,
 } from './analytics.controller';
 
 export async function analyticsRoutes(server: FastifyInstance) {
-  // 인증 미들웨어 적용
+  // GET /api/analytics/today-emotions - 오늘의 감정 통계 (공개)
+  server.get('/today-emotions', getTodayEmotionStats);
+
+  // 인증 미들웨어 적용 (이하 라우트)
   server.addHook('preHandler', authenticateOptional);
 
   // POST /api/analytics/calculate - 마음 날씨 지수 계산 (프리미엄 전용)

@@ -17,6 +17,11 @@ export async function authRoutes(server: FastifyInstance) {
     handler: authController.getMe.bind(authController),
   });
 
+  // 프로필 업데이트
+  server.put('/profile', {
+    handler: authController.updateProfile.bind(authController),
+  });
+
   // 사용량 정보 조회
   server.get('/usage', {
     handler: authController.getUsage.bind(authController),

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import UsageBanner from '@/components/UsageBanner';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 import { useTimeTheme } from '@/lib/hooks/useTimeTheme';
 
 export default function AppLayout({
@@ -101,6 +102,7 @@ export default function AppLayout({
 
             {/* 사용자 메뉴 */}
             <div className="flex items-center space-x-4">
+              <PushNotificationToggle />
               <span className="text-sm text-gray-600">
                 {user?.displayName || user?.email}
               </span>

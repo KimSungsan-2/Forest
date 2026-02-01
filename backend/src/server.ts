@@ -8,6 +8,8 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { reflectionRoutes, chatRoutes } from './modules/reflections/reflection.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import { paymentRoutes } from './modules/payments/payment.routes';
+import { adminRoutes } from './modules/admin/admin.routes';
+import { pushRoutes } from './modules/push/push.routes';
 
 const server = Fastify({
   logger: {
@@ -58,6 +60,8 @@ async function start() {
     await server.register(chatRoutes, { prefix: '/api/chat' });
     await server.register(analyticsRoutes, { prefix: '/api/analytics' });
     await server.register(paymentRoutes, { prefix: '/api/payments' });
+    await server.register(adminRoutes, { prefix: '/api/admin' });
+    await server.register(pushRoutes, { prefix: '/api/push' });
 
     // Start server
     await server.listen({

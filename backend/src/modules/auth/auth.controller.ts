@@ -126,6 +126,36 @@ export class AuthController {
     }
   }
   /**
+   * PUT /api/auth/profile
+   * 프로필 업데이트 (양육 환경 + 아이 정보)
+   */
+  async updateProfile(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      await request.jwtVerify();
+      const payload = request.user as JwtPayload;
+
+      if (payload.userId === 'guest') {
+        return reply.code(400).send({ error: '로그인이 필요합니다' });
+      }
+
+      const body = request.body as {
+        displayName?: string;
+        parentingType?: string;
+        childProfiles?: Array<{ name?: string; birthDate: string; gender?: string }>;
+      };
+
+      const user = await authService.updateProfile(payload.userId, body);
+
+      return reply.code(200).send({ user });
+    } catch (error) {
+      if (error instanceof Error) {
+        return reply.code(400).send({ error: error.message });
+      }
+      return reply.code(500).send({ error: '프로필 업데이트에 실패했습니다' });
+    }
+  }
+
+  /**
    * POST /api/auth/redeem-promo
    * 프로모 코드 입력으로 프리미엄 업그레이드
    */

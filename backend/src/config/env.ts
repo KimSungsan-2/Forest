@@ -34,6 +34,14 @@ const envSchema = z.object({
 
   // Promo Code (쉼표로 구분, 여러 코드 가능)
   PROMO_CODES: z.string().optional(),
+
+  // Admin (쉼표로 구분, 여러 이메일 가능)
+  ADMIN_EMAILS: z.string().optional(),
+
+  // Web Push (VAPID)
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_EMAIL: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -59,4 +67,10 @@ export const config = {
   promoCodes: parsedEnv.data.PROMO_CODES
     ? parsedEnv.data.PROMO_CODES.split(',').map((c) => c.trim())
     : [],
+  adminEmails: parsedEnv.data.ADMIN_EMAILS
+    ? parsedEnv.data.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
+    : [],
+  vapidPublicKey: parsedEnv.data.VAPID_PUBLIC_KEY || '',
+  vapidPrivateKey: parsedEnv.data.VAPID_PRIVATE_KEY || '',
+  vapidEmail: parsedEnv.data.VAPID_EMAIL || '',
 };

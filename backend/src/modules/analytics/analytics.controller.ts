@@ -3,6 +3,24 @@ import { analyticsService } from './analytics.service';
 import { JwtPayload } from '../../middleware/auth';
 
 /**
+ * 오늘의 감정 통계 (공개 — 인증 불필요)
+ */
+export async function getTodayEmotionStats(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  try {
+    const stats = await analyticsService.getTodayEmotionStats();
+    return reply.status(200).send(stats);
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: '감정 통계 조회에 실패했습니다',
+    });
+  }
+}
+
+/**
  * 마음 날씨 지수 계산 (온디맨드)
  */
 export async function calculateMindWeather(

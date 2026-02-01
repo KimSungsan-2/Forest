@@ -6,6 +6,8 @@ import { reflectionApi } from '@/lib/api/reflections';
 import type { EmotionTag, CounselingStyle } from '../../../../../shared/types/reflection';
 import AiMessageBubble from '@/components/AiMessageBubble';
 import CounselingResultCards from '@/components/CounselingResultCards';
+import TodayEmotionBanner from '@/components/TodayEmotionBanner';
+import QuickRecord from '@/components/QuickRecord';
 
 const POSITIVE_EMOTIONS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'pride', label: '뿌듯함', emoji: '😊' },
@@ -102,6 +104,7 @@ function parseInteractiveElements(text: string): {
 
 export default function VentPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<'full' | 'quick'>('full');
   const [step, setStep] = useState<'emotion' | 'write' | 'chatting'>('emotion');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<CounselingStyle>('nurturing');
@@ -242,48 +245,87 @@ export default function VentPage() {
             </p>
           </div>
 
-          {/* 긍정 감정 */}
-          <div className="space-y-2">
-            <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">오늘 좋은 일이 있었나요?</p>
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {POSITIVE_EMOTIONS.map((emotion) => (
-                <button
-                  key={emotion.value}
-                  onClick={() => handleEmotionSelect(emotion.value)}
-                  className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 active:scale-95 transition-all text-center"
-                >
-                  <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
-                </button>
-              ))}
+          {/* 모드 토글 */}
+          <div className="flex justify-center">
+            <div className="inline-flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setMode('full')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  mode === 'full'
+                    ? 'bg-white text-green-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                전체 상담
+              </button>
+              <button
+                onClick={() => setMode('quick')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  mode === 'quick'
+                    ? 'bg-white text-green-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                3분 기록
+              </button>
             </div>
           </div>
 
-          {/* 부정 감정 */}
-          <div className="space-y-2">
-            <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">좀 힘든 하루였나요?</p>
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {NEGATIVE_EMOTIONS.map((emotion) => (
-                <button
-                  key={emotion.value}
-                  onClick={() => handleEmotionSelect(emotion.value)}
-                  className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 active:scale-95 transition-all text-center"
-                >
-                  <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* 오늘의 감정 통계 */}
+          <TodayEmotionBanner />
 
-          <div className="text-center pt-2">
-            <button
-              onClick={() => setStep('write')}
-              className="text-green-600 hover:text-green-700 font-medium text-sm sm:text-base"
-            >
-              건너뛰기 →
-            </button>
-          </div>
+          {/* 3분 기록 모드 */}
+          {mode === 'quick' && (
+            <QuickRecord onSwitchToFull={() => { setMode('full'); setStep('write'); }} />
+          )}
+
+          {/* 전체 상담 모드: 감정 선택 */}
+          {mode === 'full' && (
+            <>
+              {/* 긍정 감정 */}
+              <div className="space-y-2">
+                <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">오늘 좋은 일이 있었나요?</p>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  {POSITIVE_EMOTIONS.map((emotion) => (
+                    <button
+                      key={emotion.value}
+                      onClick={() => handleEmotionSelect(emotion.value)}
+                      className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50 active:scale-95 transition-all text-center"
+                    >
+                      <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
+                      <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 부정 감정 */}
+              <div className="space-y-2">
+                <p className="text-xs sm:text-sm text-gray-500 font-medium px-1">좀 힘든 하루였나요?</p>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  {NEGATIVE_EMOTIONS.map((emotion) => (
+                    <button
+                      key={emotion.value}
+                      onClick={() => handleEmotionSelect(emotion.value)}
+                      className="bg-white p-3 sm:p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 active:scale-95 transition-all text-center"
+                    >
+                      <div className="text-2xl sm:text-4xl mb-1">{emotion.emoji}</div>
+                      <div className="text-xs sm:text-sm font-semibold text-gray-900">{emotion.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => setStep('write')}
+                  className="text-green-600 hover:text-green-700 font-medium text-sm sm:text-base"
+                >
+                  건너뛰기 →
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -96,6 +96,8 @@ export class AuthService {
         email: true,
         displayName: true,
         subscriptionTier: true,
+        parentingType: true,
+        childProfiles: true,
         createdAt: true,
         lastLoginAt: true,
       },
@@ -104,6 +106,38 @@ export class AuthService {
     if (!user) {
       throw new Error('사용자를 찾을 수 없습니다');
     }
+
+    return user;
+  }
+
+  /**
+   * 프로필 업데이트 (양육 환경 + 아이 정보)
+   */
+  async updateProfile(
+    userId: string,
+    data: {
+      displayName?: string;
+      parentingType?: string;
+      childProfiles?: Array<{ name?: string; birthDate: string; gender?: string }>;
+    }
+  ) {
+    const updateData: any = {};
+    if (data.displayName !== undefined) updateData.displayName = data.displayName;
+    if (data.parentingType !== undefined) updateData.parentingType = data.parentingType;
+    if (data.childProfiles !== undefined) updateData.childProfiles = data.childProfiles;
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        subscriptionTier: true,
+        parentingType: true,
+        childProfiles: true,
+      },
+    });
 
     return user;
   }

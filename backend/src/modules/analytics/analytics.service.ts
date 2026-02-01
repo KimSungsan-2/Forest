@@ -134,6 +134,38 @@ export class AnalyticsService {
   ): Promise<MindWeatherScore> {
     return calculateMindWeather(reflections);
   }
+  /**
+   * 오늘의 감정 통계 (전체 사용자 익명 집계)
+   * 인증 불필요 — 공개 데이터
+   */
+  async getTodayEmotionStats(): Promise<{
+    totalToday: number;
+    emotions: { emotion: string; count: number; percentage: number }[];
+  }> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const groups = await prisma.reflection.groupBy({
+      by: ['emotionalTone'],
+      where: {
+        createdAt: { gte: todayStart },
+        emotionalTone: { not: null },
+      },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+    });
+
+    const totalToday = groups.reduce((sum, g) => sum + g._count.id, 0);
+
+    return {
+      totalToday,
+      emotions: groups.map((g) => ({
+        emotion: g.emotionalTone || 'neutral',
+        count: g._count.id,
+        percentage: totalToday > 0 ? Math.round((g._count.id / totalToday) * 100) : 0,
+      })),
+    };
+  }
 }
 
 export const analyticsService = new AnalyticsService();

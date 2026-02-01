@@ -19,6 +19,10 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   lastLoginAt DateTime? @map("last_login_at")
 
+  // 양육 환경
+  parentingType String? @map("parenting_type") // "dual_income" | "single_income" | "single_parent" | "other"
+  childProfiles Json?   @map("child_profiles") // [{ name?, birthDate, gender? }]
+
   // 구독 정보 (레거시 필드 - Subscription 모델로 마이그레이션 중)
   subscriptionTier String @default("free") @map("subscription_tier") // "free" | "premium" | "family"
   subscriptionExpiresAt DateTime? @map("subscription_expires_at")
@@ -179,4 +183,17 @@ model Payment {
   @@index([status])
   @@index([orderId])
   @@map("payments")
+}
+
+// 웹 푸시 구독
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
