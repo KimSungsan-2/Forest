@@ -8,6 +8,7 @@ import AiMessageBubble from '@/components/AiMessageBubble';
 import CounselingResultCards from '@/components/CounselingResultCards';
 import TodayEmotionBanner from '@/components/TodayEmotionBanner';
 import QuickRecord from '@/components/QuickRecord';
+import CounselingLoader from '@/components/CounselingLoader';
 
 const POSITIVE_EMOTIONS: { value: EmotionTag; label: string; emoji: string }[] = [
   { value: 'pride', label: '뿌듯함', emoji: '😊' },
@@ -445,27 +446,7 @@ export default function VentPage() {
 
             {/* 로딩 표시 */}
             {chatLoading && (
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl shadow-md">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50" />
-                <div className="relative h-1 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400" />
-                <div className="relative p-4 sm:p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xl sm:text-2xl shadow-lg">
-                      🌲
-                    </div>
-                    <div className="flex flex-col space-y-2 pt-1">
-                      <div className="flex items-center space-x-1.5">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-                      </div>
-                      <span className="text-xs sm:text-sm text-green-600 font-medium">
-                        {isCounselingComplete ? '상담을 준비하고 있어요...' : '당신의 이야기를 듣고 있어요...'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CounselingLoader isFollowUp={messages.length > 1} />
             )}
 
             <div ref={messagesEndRef} />

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import UsageBanner from '@/components/UsageBanner';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
+import SplashScreen from '@/components/SplashScreen';
 import { useTimeTheme } from '@/lib/hooks/useTimeTheme';
 
 export default function AppLayout({
@@ -16,6 +17,7 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
+  const [splashDone, setSplashDone] = useState(false);
   const [user, setUser] = useState<any>(null);
   const theme = useTimeTheme();
 
@@ -60,15 +62,8 @@ export default function AppLayout({
     { href: '/mind-weather', label: '마음 날씨' },
   ];
 
-  if (loading) {
-    return (
-      <div className={`min-h-screen ${theme.bgGradient} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className="text-4xl mb-4">{theme.icon}</div>
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+  if (loading || !splashDone) {
+    return <SplashScreen onFinish={() => setSplashDone(true)} />;
   }
 
   return (
