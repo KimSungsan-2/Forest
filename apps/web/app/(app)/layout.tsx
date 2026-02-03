@@ -16,39 +16,41 @@ export default function AppLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [user, setUser] = useState<any>(null);
   const theme = useTimeTheme();
 
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        // 게스트 모드: 인증 체크 우회
-        if (!authApi.isAuthenticated()) {
-          // 로그인하지 않아도 게스트로 사용 가능
-          setUser({ email: 'guest', displayName: '게스트' });
-          setLoading(false);
-          return;
-        }
+      // 게스트 모드: 인증 체크 우회
+      if (!authApi.isAuthenticated()) {
+        setUser({ email: 'guest', displayName: '게스트' });
+        setAuthReady(true);
+        return;
+      }
 
-        // 로그인된 경우에만 사용자 정보 조회 시도
-        try {
-          const { user } = await authApi.getMe();
-          setUser(user);
-        } catch (error) {
-          // API 에러 시에도 게스트로 사용 가능
-          setUser({ email: 'guest', displayName: '게스트' });
-        }
-      } catch (error) {
+      // 로그인된 경우: API 호출 (5초 타임아웃)
+      const timeout = (ms: number) => new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), ms)
+      );
+
+      try {
+        const result = await Promise.race([
+          authApi.getMe(),
+          timeout(5000),
+        ]) as { user: any };
+        setUser(result.user);
+      } catch {
+        // 타임아웃 또는 API 에러 → 게스트로 진행
         setUser({ email: 'guest', displayName: '게스트' });
       } finally {
-        setLoading(false);
+        setAuthReady(true);
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     authApi.logout();
@@ -62,7 +64,9 @@ export default function AppLayout({
     { href: '/mind-weather', label: '마음 날씨' },
   ];
 
-  if (loading || !splashDone) {
+  // 스플래시가 끝나지 않았거나 인증 체크가 안 끝났으면 스플래시 표시
+  // 단, 스플래시는 최소 시간(2.8초) 후 종료되고, API가 느려도 5초 타임아웃
+  if (!splashDone || !authReady) {
     return <SplashScreen onFinish={() => setSplashDone(true)} />;
   }
 
