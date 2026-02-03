@@ -64,6 +64,10 @@ export default function DashboardPage() {
       frustration: '😣',
       overwhelm: '😵',
       loneliness: '😞',
+      pride: '😊',
+      joy: '😁',
+      gratitude: '🥰',
+      happiness: '☀️',
       neutral: '😐',
     };
     return emojiMap[emotion || 'neutral'] || '💭';
@@ -114,18 +118,37 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 빠른 액션 */}
-      <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-xl p-8 mb-8 text-white">
-        <h2 className="text-2xl font-bold mb-4">오늘의 감정을 털어놓으세요</h2>
-        <p className="mb-6 opacity-90">
-          힘들었던 순간, 자책했던 순간을 AI와 함께 돌아보세요
-        </p>
-        <Link
-          href="/vent"
-          className="inline-block bg-white text-green-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          새 회고 시작하기 →
-        </Link>
+      {/* 빠른 액션 카드들 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* 상담 카드 */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
+          <div className="text-3xl mb-3">🌲</div>
+          <h2 className="text-xl font-bold mb-2">오늘의 감정 기록</h2>
+          <p className="text-sm opacity-90 mb-4">
+            힘들었던 순간도, 뿌듯했던 순간도 함께 나눠요
+          </p>
+          <Link
+            href="/vent"
+            className="inline-block bg-white text-green-600 font-semibold px-5 py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          >
+            기록하기 →
+          </Link>
+        </div>
+
+        {/* 감사 일기 카드 */}
+        <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl p-6 text-white">
+          <div className="text-3xl mb-3">🌻</div>
+          <h2 className="text-xl font-bold mb-2">오늘의 감사</h2>
+          <p className="text-sm opacity-90 mb-4">
+            작은 것이라도 좋아요. 감사한 순간을 기록해보세요
+          </p>
+          <Link
+            href="/gratitude"
+            className="inline-block bg-white text-amber-600 font-semibold px-5 py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          >
+            감사 쓰기 →
+          </Link>
+        </div>
       </div>
 
       {/* 최근 회고 */}

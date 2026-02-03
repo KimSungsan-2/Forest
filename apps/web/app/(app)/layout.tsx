@@ -60,6 +60,7 @@ export default function AppLayout({
   const navLinks = [
     { href: '/dashboard', label: '대시보드' },
     { href: '/vent', label: '오늘의 기록' },
+    { href: '/gratitude', label: '감사 일기' },
     { href: '/history', label: '히스토리' },
     { href: '/mind-weather', label: '마음 날씨' },
   ];
